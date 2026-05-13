@@ -12,3 +12,5 @@ target_link_libraries(SabakaEngine PRIVATE
         dxgi
         d3dcompiler
 )
+
+install(TARGETS SabakaEngine DESTINATION .)
