@@ -8,6 +8,8 @@ add_executable(SabakaEngine src/main.cpp
         src/platform/Window.h
         src/renderer/GraphicsDevice.cpp
         src/renderer/GraphicsDevice.h
+        src/core/Application.cpp
+        src/core/Application.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
