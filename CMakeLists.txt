@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(SabakaEngine src/main.cpp
         src/platform/Window.cpp
         src/platform/Window.h
+        src/renderer/GraphicsDevice.cpp
+        src/renderer/GraphicsDevice.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
