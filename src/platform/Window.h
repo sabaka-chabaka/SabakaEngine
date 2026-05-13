@@ -30,7 +30,7 @@ namespace engine::platform {
         static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
         HWND m_hwnd = nullptr;
-        HINSTANCE m_hInstance = nullptr;
+        HINSTANCE m_instance = nullptr;
         int m_width = 0;
         int m_height = 0;
         std::function<void(int, int)> m_resizeCallback;
