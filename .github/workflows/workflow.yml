@@ -1,0 +1,62 @@
+name: Engine-CI
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+                -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_CXX_STANDARD=20 \
+                -S .
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install
+        run: cmake --install build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SabakaEngine-Windows-Release
+          path: ./install
+          if-no-files-found: warn
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt get install -y build-essential ninja-build
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+                -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_CXX_STANDARD=20 \
+                -S .
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install
+        run: cmake --install build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SabakaEngine-Ubuntu-Release
+          path: ./install
+          if-no-files-found: warn
