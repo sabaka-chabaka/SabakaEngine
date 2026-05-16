@@ -17,8 +17,7 @@ namespace engine::renderer {
         Mesh(ID3D11Device *device,
              ID3D11DeviceContext *context,
              const std::vector<Vertex> &vertices,
-             const std::vector<unsigned int> &indices) {
-        }
+             const std::vector<unsigned int> &indices);
 
         ~Mesh() = default;
 
