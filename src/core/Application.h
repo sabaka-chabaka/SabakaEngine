@@ -3,10 +3,9 @@
 #include "renderer/GraphicsDevice.h"
 #include <memory>
 
-namespace engine::renderer {
-    class Shader;
-    class Mesh;
-}
+#include "renderer/Mesh.h"
+#include "renderer/Shader.h"
+
 
 namespace engine::core {
     class Application {

@@ -20,7 +20,7 @@ namespace engine::renderer {
         Shader(ID3D11Device *device,
                const std::wstring &vsPath,
                const std::wstring &psPath,
-               const std::vector<InputElementDesc> &layout)
+               const std::vector<InputElementDesc> &layout);
 
         ~Shader() = default;
 
