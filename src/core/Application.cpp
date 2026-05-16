@@ -2,6 +2,14 @@
 #include "core/Logger.h"
 #include <chrono>
 
+#include "renderer/Mesh.h"
+#include "renderer/Shader.h"
+
+namespace engine::renderer {
+    struct InputElementDesc;
+    struct Vertex;
+}
+
 namespace engine::core {
 
     Application::Application() {
@@ -32,9 +40,38 @@ namespace engine::core {
         LOG_INFO("DirectX 11 device initialized");
 
         m_window->setResizeCallback([this](int w, int h) {
-            LOG_DEBUG("Window resized to " + std::to_string(w) + "x" + std::to_string(h));
+            LOG_DEBUG("Window resized: " + std::to_string(w) + "x" + std::to_string(h));
             m_graphics->onResize(w, h);
         });
+
+        std::vector<renderer::Vertex> vertices = {
+            {  0.0f,  0.5f, 0.0f,   1.0f, 0.2f, 0.2f },
+            {  0.5f, -0.5f, 0.0f,   0.2f, 1.0f, 0.2f },
+            { -0.5f, -0.5f, 0.0f,   0.2f, 0.2f, 1.0f },
+        };
+
+        std::vector<unsigned int> indices = { 0, 1, 2 };
+
+        m_mesh = std::make_unique<renderer::Mesh>(
+           m_graphics->getDevice(),
+           m_graphics->getDeviceContext(),
+           vertices,
+           indices
+        );
+
+        std::vector<renderer::InputElementDesc> layout = {
+           { "POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0  },
+           { "COLOR",    DXGI_FORMAT_R32G32B32_FLOAT, 12 },
+        };
+
+        m_shader = std::make_unique<renderer::Shader>(
+            m_graphics->getDevice(),
+            L"shaders/Basic.vs.hlsl",
+            L"shaders/Basic.ps.hlsl",
+            layout
+        );
+
+        LOG_INFO("Scene resources ready");
     }
 
     int Application::run() {
@@ -53,6 +90,10 @@ namespace engine::core {
             onUpdate(deltaTime);
 
             m_graphics->beginFrame(0.1f, 0.1f, 0.15f);
+
+            m_shader->bind(m_graphics->getDeviceContext());
+            m_mesh->draw();
+
             onRender();
             m_graphics->endFrame();
         }
