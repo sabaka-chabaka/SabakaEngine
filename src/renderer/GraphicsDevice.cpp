@@ -77,6 +77,8 @@ namespace engine::renderer {
     }
 
     void GraphicsDevice::beginFrame(float r, float g, float b) {
+        m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+
         float color[4] = { r, g, b, 1.0f };
         m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
     }
