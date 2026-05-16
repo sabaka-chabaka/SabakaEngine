@@ -1,6 +1,7 @@
 #include "renderer/Shader.h"
 #include "core/Logger.h"
 #include <d3dcompiler.h>
+#include <filesystem>
 #include <fstream>
 #include <stdexcept>
 #include <iterator>
@@ -70,10 +71,18 @@ void Shader::bind(ID3D11DeviceContext* context) const {
     context->IASetInputLayout(m_inputLayout.Get());
 }
 
-std::vector<char> Shader::compileFromFile(const std::wstring& path,
-                                           const std::string&  entryPoint,
-                                           const std::string&  target)
+    std::vector<char> Shader::compileFromFile(const std::wstring& path,
+                                               const std::string&  entryPoint,
+                                               const std::string&  target)
 {
+    wchar_t exePath[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+
+    std::filesystem::path absolutePath =
+        std::filesystem::path(exePath).parent_path() / path;
+
+    LOG_DEBUG("Loading shader: " + absolutePath.string());
+
     UINT compileFlags = 0;
 #ifdef _DEBUG
     compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -83,7 +92,7 @@ std::vector<char> Shader::compileFromFile(const std::wstring& path,
     ComPtr<ID3DBlob> errorBlob;
 
     HRESULT hr = D3DCompileFromFile(
-        path.c_str(),
+        absolutePath.c_str(),
         nullptr,
         D3D_COMPILE_STANDARD_FILE_INCLUDE,
         entryPoint.c_str(),
