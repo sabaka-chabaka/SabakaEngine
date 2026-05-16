@@ -10,6 +10,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/GraphicsDevice.h
         src/core/Application.cpp
         src/core/Application.h
+        src/core/Logger.cpp
+        src/core/Logger.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
