@@ -34,5 +34,6 @@ namespace engine::platform {
         int m_width = 0;
         int m_height = 0;
         std::function<void(int, int)> m_resizeCallback;
+        bool m_initialized = false;
     };
 }

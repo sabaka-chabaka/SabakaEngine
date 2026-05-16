@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "core/Logger.h"
+
 namespace engine::platform {
     static const wchar_t* CLASS_NAME  = L"GameEngineWindowClass";
 
@@ -43,6 +45,7 @@ namespace engine::platform {
 
         ShowWindow(m_hwnd, SW_SHOW);
         UpdateWindow(m_hwnd);
+        m_initialized = true;
     }
 
     Window::~Window() {
@@ -84,9 +87,9 @@ namespace engine::platform {
         if (self) {
             switch (msg) {
                 case WM_SIZE:
-                    self->m_width = LOWORD(lParam);
+                    self->m_width  = LOWORD(lParam);
                     self->m_height = HIWORD(lParam);
-                    if (self->m_resizeCallback) {
+                    if (self->m_initialized && self->m_resizeCallback) {
                         self->m_resizeCallback(self->m_width, self->m_height);
                     }
                     return 0;
