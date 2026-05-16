@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.28)
-project(SabakaEngine)
+cmake_minimum_required(VERSION 3.20)
+project(SabakaEngine VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(SabakaEngine WIN32 src/main.cpp
         src/platform/Window.cpp
@@ -26,4 +27,9 @@ target_link_libraries(SabakaEngine PRIVATE
         d3dcompiler
 )
 
-install(TARGETS SabakaEngine DESTINATION .)
+add_custom_command(TARGET SabakaEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/shaders
+        $<TARGET_FILE_DIR:SabakaEngine>/shaders
+        COMMENT "Copying shaders to output directory"
+)
