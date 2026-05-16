@@ -12,6 +12,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/core/Application.h
         src/core/Logger.cpp
         src/core/Logger.h
+        src/renderer/Mesh.cpp
+        src/renderer/Mesh.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
