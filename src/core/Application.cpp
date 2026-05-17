@@ -1,9 +1,11 @@
 #include "core/Application.h"
 #include "core/Logger.h"
+#include "platform/Input.h"
 #include <DirectXMath.h>
 #include <chrono>
 
 using namespace DirectX;
+using namespace engine::platform;
 
 namespace engine::core {
     Application::Application() {
@@ -22,6 +24,8 @@ namespace engine::core {
 
         m_window = std::make_unique<platform::Window>(wDesc);
         LOG_INFO("Window created (1280x720)");
+
+        InputSystem::get().initialize(m_window->getNativeHandle());
 
         renderer::GraphicsDeviceDesc gDesc;
         gDesc.hwnd = m_window->getNativeHandle();
@@ -100,6 +104,23 @@ namespace engine::core {
                 lastTime = now;
                 totalTime += deltaTime;
 
+                auto &input = InputSystem::get();
+
+                if (input.isKeyPressed(Key::Escape)) {
+                    if (input.isMouseCaptured()) {
+                        input.setMouseCaptured(false);
+                    } else {
+                        break;
+                    }
+                }
+
+                if (input.isKeyPressed(Key::F1)) {
+                    m_graphics->setFillMode(renderer::FillMode::Wireframe);
+                }
+                if (input.isKeyPressed(Key::F2)) {
+                    m_graphics->setFillMode(renderer::FillMode::Solid);
+                }
+
                 onUpdate(deltaTime);
 
                 XMMATRIX model = XMMatrixRotationRollPitchYaw(
@@ -121,6 +142,8 @@ namespace engine::core {
                 m_mesh->draw();
                 onRender();
                 m_graphics->endFrame();
+
+                input.endFrame();
             }
         } catch (const std::exception &e) {
             LOG_FATAL(std::string("Exception in main loop: ") + e.what());
