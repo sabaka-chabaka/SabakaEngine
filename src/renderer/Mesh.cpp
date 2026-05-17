@@ -1,6 +1,6 @@
 #include "renderer/Mesh.h"
-#include <stdexcept>
 #include "core/Logger.h"
+#include <stdexcept>
 
 namespace engine::renderer {
     Mesh::Mesh(ID3D11Device *device,
@@ -46,6 +46,10 @@ namespace engine::renderer {
 
             LOG_DEBUG("Index buffer created: " + std::to_string(indices.size()) + " indices");
         }
+
+        LOG_DEBUG("Mesh created: " +
+            std::to_string(vertices.size()) + " verts, " +
+            std::to_string(indices.size()) + " indices");
     }
 
     void Mesh::draw() const {
@@ -69,35 +73,35 @@ namespace engine::renderer {
 
     Mesh Mesh::createCube(ID3D11Device *device, ID3D11DeviceContext *context) {
         std::vector<Vertex> vertices = {
-            {-0.5f, 0.5f, -0.5f, 1.0f, 0.2f, 0.2f},
-            {0.5f, 0.5f, -0.5f, 1.0f, 0.2f, 0.2f},
-            {-0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 0.2f},
-            {0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 0.2f},
+            {-0.5f, 0.5f, -0.5f, 1.0f, 0.2f, 0.2f, 0.0f, 0.0f},
+            {0.5f, 0.5f, -0.5f, 1.0f, 0.2f, 0.2f, 1.0f, 0.0f},
+            {-0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 0.2f, 0.0f, 1.0f},
+            {0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 0.2f, 1.0f, 1.0f},
 
-            {0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 0.2f},
-            {-0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 0.2f},
-            {0.5f, -0.5f, 0.5f, 0.2f, 1.0f, 0.2f},
-            {-0.5f, -0.5f, 0.5f, 0.2f, 1.0f, 0.2f},
+            {0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 0.2f, 0.0f, 0.0f},
+            {-0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 0.2f, 1.0f, 0.0f},
+            {0.5f, -0.5f, 0.5f, 0.2f, 1.0f, 0.2f, 0.0f, 1.0f},
+            {-0.5f, -0.5f, 0.5f, 0.2f, 1.0f, 0.2f, 1.0f, 1.0f},
 
-            {-0.5f, 0.5f, 0.5f, 0.2f, 0.2f, 1.0f},
-            {-0.5f, 0.5f, -0.5f, 0.2f, 0.2f, 1.0f},
-            {-0.5f, -0.5f, 0.5f, 0.2f, 0.2f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, 0.2f, 0.2f, 1.0f},
+            {-0.5f, 0.5f, 0.5f, 0.2f, 0.2f, 1.0f, 0.0f, 0.0f},
+            {-0.5f, 0.5f, -0.5f, 0.2f, 0.2f, 1.0f, 1.0f, 0.0f},
+            {-0.5f, -0.5f, 0.5f, 0.2f, 0.2f, 1.0f, 0.0f, 1.0f},
+            {-0.5f, -0.5f, -0.5f, 0.2f, 0.2f, 1.0f, 1.0f, 1.0f},
 
-            {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 0.2f},
-            {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.2f},
-            {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.2f},
-            {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.2f},
+            {0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 0.2f, 0.0f, 0.0f},
+            {0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.2f, 1.0f, 0.0f},
+            {0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.2f, 0.0f, 1.0f},
+            {0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.2f, 1.0f, 1.0f},
 
-            {-0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 1.0f},
-            {0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 1.0f},
-            {-0.5f, 0.5f, -0.5f, 0.2f, 1.0f, 1.0f},
-            {0.5f, 0.5f, -0.5f, 0.2f, 1.0f, 1.0f},
+            {-0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 1.0f, 0.0f, 0.0f},
+            {0.5f, 0.5f, 0.5f, 0.2f, 1.0f, 1.0f, 1.0f, 0.0f},
+            {-0.5f, 0.5f, -0.5f, 0.2f, 1.0f, 1.0f, 0.0f, 1.0f},
+            {0.5f, 0.5f, -0.5f, 0.2f, 1.0f, 1.0f, 1.0f, 1.0f},
 
-            {-0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 1.0f},
-            {0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 1.0f},
-            {-0.5f, -0.5f, 0.5f, 1.0f, 0.2f, 1.0f},
-            {0.5f, -0.5f, 0.5f, 1.0f, 0.2f, 1.0f},
+            {-0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 1.0f, 0.0f, 0.0f},
+            {0.5f, -0.5f, -0.5f, 1.0f, 0.2f, 1.0f, 1.0f, 0.0f},
+            {-0.5f, -0.5f, 0.5f, 1.0f, 0.2f, 1.0f, 0.0f, 1.0f},
+            {0.5f, -0.5f, 0.5f, 1.0f, 0.2f, 1.0f, 1.0f, 1.0f},
         };
 
         std::vector<unsigned int> indices = {
