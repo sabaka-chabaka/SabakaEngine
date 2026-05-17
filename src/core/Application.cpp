@@ -106,6 +106,9 @@ namespace engine::core {
         auto lastTime = Clock::now();
         float totalTime = 0.0f;
 
+        m_graphics->setFillMode(renderer::FillMode::Solid);
+        m_graphics->setCullMode(renderer::CullMode::None);
+
         try {
             while (m_window->processMessages()) {
                 auto now = Clock::now();
