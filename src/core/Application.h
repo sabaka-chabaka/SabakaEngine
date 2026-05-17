@@ -6,6 +6,8 @@
 #include "renderer/Camera.h"
 #include "renderer/ConstantBuffer.h"
 #include "renderer/TransformData.h"
+#include "renderer/Texture2D.h"
+#include "renderer/SamplerState.h"
 #include <memory>
 
 
@@ -30,5 +32,7 @@ namespace engine::core {
         std::unique_ptr<renderer::Shader>                                  m_shader;
         std::unique_ptr<renderer::Camera>                                  m_camera;
         std::unique_ptr<renderer::ConstantBuffer<renderer::TransformData>> m_transformCB;
+        std::unique_ptr<renderer::Texture2D>                               m_texture;
+        std::unique_ptr<renderer::SamplerState>                            m_sampler;
     };
 }

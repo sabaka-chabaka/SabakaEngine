@@ -3,11 +3,19 @@
 #include "platform/Input.h"
 #include <DirectXMath.h>
 #include <chrono>
+#include <filesystem>
 
 using namespace DirectX;
 using namespace engine::platform;
 
 namespace engine::core {
+    static std::string getExeDir() {
+        wchar_t exePath[MAX_PATH] = {};
+        GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+        auto path = std::filesystem::path(exePath).parent_path();
+        return path.string();
+    }
+
     Application::Application() {
         AllocConsole();
         freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
@@ -73,6 +81,29 @@ namespace engine::core {
         m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData> >(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
+        );
+
+        std::string texturePath = getExeDir() + "/textures/cube.png";
+        renderer::TextureDesc texDesc;
+        texDesc.generateMips = true;
+        texDesc.srgb = false;
+
+        m_texture = std::make_unique<renderer::Texture2D>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            texturePath,
+            texDesc
+        );
+
+        renderer::SamplerDesc sampDesc;
+        sampDesc.filter = renderer::FilterMode::Trilinear;
+        sampDesc.wrapU = renderer::WrapMode::Repeat;
+        sampDesc.wrapV = renderer::WrapMode::Repeat;
+
+        m_sampler = std::make_unique<renderer::SamplerState>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            sampDesc
         );
 
         m_window->setResizeCallback([this](int w, int h) {
@@ -141,8 +172,12 @@ namespace engine::core {
                 m_transformCB->bindVS(0);
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
+
                 m_shader->bind(m_graphics->getDeviceContext());
+                m_texture->bindPS(0);
+                m_sampler->bindPS(0);
                 m_mesh->draw();
+
                 onRender();
                 m_graphics->endFrame();
 
