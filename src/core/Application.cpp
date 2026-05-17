@@ -7,6 +7,9 @@ using namespace DirectX;
 
 namespace engine::core {
     Application::Application() {
+        AllocConsole();
+        freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+
         Logger::get().openLogFile("engine.log");
         Logger::get().setMinLevel(LogLevel::Trace);
 
