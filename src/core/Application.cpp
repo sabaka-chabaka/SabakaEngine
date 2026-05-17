@@ -12,8 +12,7 @@ namespace engine::core {
     static std::string getExeDir() {
         wchar_t exePath[MAX_PATH] = {};
         GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-        auto path = std::filesystem::path(exePath).parent_path();
-        return path.string();
+        return std::filesystem::path(exePath).parent_path().string();
     }
 
     Application::Application() {
@@ -46,10 +45,10 @@ namespace engine::core {
 
         m_mesh = std::make_unique<renderer::Mesh>(
             renderer::Mesh::createCube(
-            m_graphics->getDevice(),
-            m_graphics->getDeviceContext()
-        )
-);
+                m_graphics->getDevice(),
+                m_graphics->getDeviceContext()
+            )
+        );
 
         std::vector<renderer::InputElementDesc> layout = {
             {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
@@ -83,15 +82,28 @@ namespace engine::core {
             m_graphics->getDeviceContext()
         );
 
-        std::string texturePath = getExeDir() + "/textures/cube.png";
+        m_materialCB = std::make_unique<renderer::ConstantBuffer<renderer::MaterialData> >(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+
+        std::string exeDir = getExeDir();
+
         renderer::TextureDesc texDesc;
         texDesc.generateMips = true;
         texDesc.srgb = false;
 
-        m_texture = std::make_unique<renderer::Texture2D>(
+        m_diffuseTexture = std::make_unique<renderer::Texture2D>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext(),
-            texturePath,
+            exeDir + "/textures/cube_diffuse.png",
+            texDesc
+        );
+
+        m_specularTexture = std::make_unique<renderer::Texture2D>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            exeDir + "/textures/cube_specular.png",
             texDesc
         );
 
@@ -128,6 +140,12 @@ namespace engine::core {
 
         m_graphics->setFillMode(renderer::FillMode::Solid);
         m_graphics->setCullMode(renderer::CullMode::None);
+
+        renderer::MaterialData material;
+        material.specularIntensity = 0.6f;
+        material.specularPower = 32.0f;
+        material.uvScale = {1.0f, 1.0f};
+        material.uvOffset = {0.0f, 0.0f};
 
         try {
             while (m_window->processMessages()) {
@@ -171,10 +189,14 @@ namespace engine::core {
                 m_transformCB->update(td);
                 m_transformCB->bindVS(0);
 
+                m_materialCB->update(material);
+                m_materialCB->bindPS(1);
+
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
 
                 m_shader->bind(m_graphics->getDeviceContext());
-                m_texture->bindPS(0);
+                m_diffuseTexture->bindPS(0);
+                m_specularTexture->bindPS(1);
                 m_sampler->bindPS(0);
                 m_mesh->draw();
 
