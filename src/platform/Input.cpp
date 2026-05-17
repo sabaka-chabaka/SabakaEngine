@@ -64,6 +64,7 @@ namespace engine::platform {
 
             bool isDown = !(kb.Flags & RI_KEY_BREAK);
             m_currKeys[vk] = isDown;
+            LOG_TRACE("Key " + std::to_string(vk) + " " + (isDown ? "down" : "up"));
         } else if (raw->header.dwType == RIM_TYPEMOUSE) {
             const RAWMOUSE &mouse = raw->data.mouse;
 
