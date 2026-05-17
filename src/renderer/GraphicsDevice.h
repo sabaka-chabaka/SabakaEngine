@@ -15,6 +15,17 @@ namespace engine::renderer {
         bool vsync = true;
     };
 
+    enum class FillMode {
+        Solid,
+        Wireframe,
+    };
+
+    enum class CullMode {
+        None,
+        Front,
+        Back,
+    };
+
     class GraphicsDevice {
     public:
         explicit GraphicsDevice(const GraphicsDeviceDesc& desc);
@@ -28,6 +39,9 @@ namespace engine::renderer {
 
         void onResize(int width, int height);
 
+        void setFillMode(FillMode mode);
+        void setCullMode(CullMode mode);
+
         ID3D11Device*        getDevice()        const;
         ID3D11DeviceContext* getDeviceContext()  const;
 
@@ -35,11 +49,23 @@ namespace engine::renderer {
         void createRenderTargetView();
         void releaseRenderTargetView();
 
+        void createDepthStencilBuffer(int width, int height);
+        void releaseDepthStencilBuffer();
+
+        void rebuildRasterizerState();
+
         ComPtr<ID3D11Device>           m_device;
         ComPtr<ID3D11DeviceContext>    m_context;
         ComPtr<IDXGISwapChain>         m_swapChain;
         ComPtr<ID3D11RenderTargetView> m_renderTargetView;
 
+        ComPtr<ID3D11Texture2D>         m_depthStencilTexture;
+        ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
+        ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+        ComPtr<ID3D11RasterizerState>   m_rasterizerState;
+
+        FillMode m_fillMode = FillMode::Solid;
+        CullMode m_cullMode = CullMode::Back;
         bool m_vsync  = true;
         int  m_width  = 0;
         int  m_height = 0;
