@@ -22,6 +22,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/TransformData.h
         src/platform/Input.cpp
         src/platform/Input.h
+        src/renderer/Texture2D.cpp
+        src/renderer/Texture2D.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
