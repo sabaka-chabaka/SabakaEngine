@@ -26,6 +26,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/Texture2D.h
         src/renderer/SamplerState.cpp
         src/renderer/SamplerState.h
+        src/renderer/Material.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
