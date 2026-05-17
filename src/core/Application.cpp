@@ -13,7 +13,7 @@ namespace engine::core {
         freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
 
         Logger::get().openLogFile("engine.log");
-        Logger::get().setMinLevel(LogLevel::Trace);
+        Logger::get().setMinLevel(LogLevel::Info);
 
         LOG_INFO("Initializing SabakaEngine");
 
@@ -46,6 +46,7 @@ namespace engine::core {
         std::vector<renderer::InputElementDesc> layout = {
             {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
             {"COLOR", DXGI_FORMAT_R32G32B32_FLOAT, 12},
+            {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT, 24},
         };
 
         m_shader = std::make_unique<renderer::Shader>(
@@ -116,9 +117,11 @@ namespace engine::core {
 
                 if (input.isKeyPressed(Key::F1)) {
                     m_graphics->setFillMode(renderer::FillMode::Wireframe);
+                    LOG_INFO("Wireframe mode");
                 }
                 if (input.isKeyPressed(Key::F2)) {
                     m_graphics->setFillMode(renderer::FillMode::Solid);
+                    LOG_INFO("Solid mode");
                 }
 
                 onUpdate(deltaTime);
