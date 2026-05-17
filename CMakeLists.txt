@@ -20,6 +20,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/Camera.h
         src/renderer/ConstantBuffer.h
         src/renderer/TransformData.h
+        src/platform/Input.cpp
+        src/platform/Input.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
