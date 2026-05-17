@@ -1,11 +1,10 @@
-#include "Window.h"
-
+#include "platform/Window.h"
+#include "platform/Input.h"
+#include "core/Logger.h"
 #include <stdexcept>
 
-#include "core/Logger.h"
-
 namespace engine::platform {
-    static const wchar_t* CLASS_NAME  = L"GameEngineWindowClass";
+    static const wchar_t *CLASS_NAME = L"SabakaEngineWindowClass";
 
     Window::Window(const WindowDesc &desc) : m_width(desc.width), m_height(desc.height) {
         m_instance = GetModuleHandleW(nullptr);
@@ -78,14 +77,23 @@ namespace engine::platform {
     LRESULT CALLBACK Window::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         Window* self = nullptr;
         if (msg == WM_NCCREATE) {
-            self = reinterpret_cast<Window*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+            auto *cs = reinterpret_cast<CREATESTRUCTW *>(lParam);
+            self = reinterpret_cast<Window*>(cs->lpCreateParams);
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
         } else {
             self = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         }
 
         if (self) {
             switch (msg) {
+                case WM_INPUT:
+                    InputSystem::get().processRawInput(lParam);
+                    return 0;
+
+                case WM_KILLFOCUS:
+                    InputSystem::get().onKillFocus();
+                    return 0;
+
                 case WM_SIZE:
                     self->m_width  = LOWORD(lParam);
                     self->m_height = HIWORD(lParam);
