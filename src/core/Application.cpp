@@ -5,11 +5,6 @@
 
 using namespace DirectX;
 
-namespace engine::renderer {
-    struct InputElementDesc;
-    struct Vertex;
-}
-
 namespace engine::core {
     Application::Application() {
         Logger::get().openLogFile("engine.log");
@@ -34,26 +29,12 @@ namespace engine::core {
         m_graphics = std::make_unique<renderer::GraphicsDevice>(gDesc);
         LOG_INFO("DirectX 11 device initialized");
 
-        std::vector<renderer::Vertex> vertices = {
-            {0.0f, 0.5f, 0.0f, 1.0f, 0.2f, 0.2f},
-            {0.5f, -0.5f, 0.0f, 0.2f, 1.0f, 0.2f},
-            {-0.5f, -0.5f, 0.0f, 0.2f, 0.2f, 1.0f},
-            {0.0f, 0.5f, 0.5f, 1.0f, 1.0f, 0.2f},
-            {0.5f, -0.5f, 0.5f, 0.2f, 1.0f, 1.0f},
-            {-0.5f, -0.5f, 0.5f, 1.0f, 0.2f, 1.0f},
-        };
-
-        std::vector<unsigned int> indices = {
-            0, 1, 2,
-            3, 4, 5,
-        };
-
         m_mesh = std::make_unique<renderer::Mesh>(
+            renderer::Mesh::createCube(
             m_graphics->getDevice(),
-            m_graphics->getDeviceContext(),
-            vertices,
-            indices
-        );
+            m_graphics->getDeviceContext()
+        )
+);
 
         std::vector<renderer::InputElementDesc> layout = {
             {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
@@ -68,7 +49,7 @@ namespace engine::core {
         );
 
         renderer::CameraDesc camDesc;
-        camDesc.position = {0.0f, 1.0f, -3.0f};
+        camDesc.position = {0.0f, 1.5f, -3.0f};
         camDesc.target = {0.0f, 0.0f, 0.0f};
         camDesc.up = {0.0f, 1.0f, 0.0f};
         camDesc.fovY = XM_PIDIV4;
@@ -118,7 +99,11 @@ namespace engine::core {
 
                 onUpdate(deltaTime);
 
-                XMMATRIX model = XMMatrixRotationY(totalTime * 0.8f);
+                XMMATRIX model = XMMatrixRotationRollPitchYaw(
+                    totalTime * 0.4f,
+                    totalTime * 0.8f,
+                    totalTime * 0.2f
+                );
 
                 renderer::TransformData td;
                 td.model = XMMatrixTranspose(model);
@@ -128,7 +113,7 @@ namespace engine::core {
                 m_transformCB->update(td);
                 m_transformCB->bindVS(0);
 
-                m_graphics->beginFrame(0.1f, 0.1f, 0.15f);
+                m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
                 m_shader->bind(m_graphics->getDeviceContext());
                 m_mesh->draw();
                 onRender();

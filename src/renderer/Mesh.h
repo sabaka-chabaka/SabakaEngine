@@ -1,8 +1,7 @@
 #pragma once
-#include <vector>
+#include <d3d11.h>
 #include <wrl/client.h>
-
-#include "GraphicsDevice.h"
+#include <vector>
 
 namespace engine::renderer {
     using Microsoft::WRL::ComPtr;
@@ -24,9 +23,12 @@ namespace engine::renderer {
         Mesh(const Mesh&)            = delete;
         Mesh& operator=(const Mesh&) = delete;
 
+        Mesh(Mesh&&)                 = default;
+        Mesh& operator=(Mesh&&)      = default;
+
         void draw() const;
 
-        unsigned int getIndexCount() const;
+        static Mesh createCube(ID3D11Device* device, ID3D11DeviceContext* context);
 
     private:
         ID3D11DeviceContext*          m_context;
