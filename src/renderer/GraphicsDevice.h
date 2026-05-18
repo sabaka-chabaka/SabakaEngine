@@ -26,6 +26,13 @@ namespace engine::renderer {
         Back,
     };
 
+    enum class BlendMode {
+        Opaque,
+        AlphaBlend,
+        Additive,
+        Multiplicative,
+    };
+
     class GraphicsDevice {
     public:
         explicit GraphicsDevice(const GraphicsDeviceDesc& desc);
@@ -41,6 +48,8 @@ namespace engine::renderer {
 
         void setFillMode(FillMode mode);
         void setCullMode(CullMode mode);
+        void setBlendMode(BlendMode mode);
+        void setDepthWriteEnabled(bool enabled);
 
         ID3D11Device*        getDevice()        const;
         ID3D11DeviceContext* getDeviceContext()  const;
@@ -54,6 +63,9 @@ namespace engine::renderer {
 
         void rebuildRasterizerState();
 
+        void rebuildBlendState();
+        void rebuildDepthStencilState();
+
         ComPtr<ID3D11Device>           m_device;
         ComPtr<ID3D11DeviceContext>    m_context;
         ComPtr<IDXGISwapChain>         m_swapChain;
@@ -63,11 +75,14 @@ namespace engine::renderer {
         ComPtr<ID3D11DepthStencilView>  m_depthStencilView;
         ComPtr<ID3D11DepthStencilState> m_depthStencilState;
         ComPtr<ID3D11RasterizerState>   m_rasterizerState;
+        ComPtr<ID3D11BlendState>        m_blendState;
 
-        FillMode m_fillMode = FillMode::Solid;
-        CullMode m_cullMode = CullMode::Back;
-        bool m_vsync  = true;
-        int  m_width  = 0;
-        int  m_height = 0;
+        FillMode  m_fillMode       = FillMode::Solid;
+        CullMode  m_cullMode       = CullMode::Back;
+        BlendMode m_blendMode      = BlendMode::Opaque;
+        bool      m_depthWrite     = true;
+        bool      m_vsync          = true;
+        int       m_width          = 0;
+        int       m_height         = 0;
     };
 }
