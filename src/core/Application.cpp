@@ -20,7 +20,7 @@ namespace engine::core {
         freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
 
         Logger::get().openLogFile("engine.log");
-        Logger::get().setMinLevel(LogLevel::Info);
+        Logger::get().setMinLevel(LogLevel::Debug);
 
         LOG_INFO("Initializing SabakaEngine");
 
