@@ -18,7 +18,10 @@ namespace engine::renderer {
         scd.Windowed = TRUE;
         scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-        D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0};
+        D3D_FEATURE_LEVEL featureLevels[] = {
+            D3D_FEATURE_LEVEL_11_1,
+            D3D_FEATURE_LEVEL_11_0
+        };
         D3D_FEATURE_LEVEL featureLevel;
 
         UINT flags = 0;
@@ -27,18 +30,10 @@ namespace engine::renderer {
 #endif
 
         HRESULT hr = D3D11CreateDeviceAndSwapChain(
-            nullptr,
-            D3D_DRIVER_TYPE_HARDWARE,
-            nullptr,
-            flags,
-            featureLevels,
-            ARRAYSIZE(featureLevels),
-            D3D11_SDK_VERSION,
-            &scd,
-            &m_swapChain,
-            &m_device,
-            &featureLevel,
-            &m_context
+            nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+            flags, featureLevels, ARRAYSIZE(featureLevels),
+            D3D11_SDK_VERSION, &scd,
+            &m_swapChain, &m_device, &featureLevel, &m_context
         );
 
         if (FAILED(hr)) {
@@ -48,6 +43,7 @@ namespace engine::renderer {
         createRenderTargetView();
         createDepthStencilBuffer(m_width, m_height);
         rebuildRasterizerState();
+        rebuildBlendState();
 
         LOG_INFO("GraphicsDevice ready");
     }
@@ -55,14 +51,10 @@ namespace engine::renderer {
     void GraphicsDevice::createRenderTargetView() {
         ComPtr<ID3D11Texture2D> backBuffer;
         HRESULT hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to get back buffer");
-        }
+        if (FAILED(hr)) throw std::runtime_error("Failed to get back buffer");
 
         hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView);
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to create render target view");
-        }
+        if (FAILED(hr)) throw std::runtime_error("Failed to create render target view");
     }
 
     void GraphicsDevice::releaseRenderTargetView() {
@@ -72,8 +64,8 @@ namespace engine::renderer {
 
     void GraphicsDevice::createDepthStencilBuffer(int width, int height) {
         D3D11_TEXTURE2D_DESC texDesc = {};
-        texDesc.Width = width;
-        texDesc.Height = height;
+        texDesc.Width = static_cast<UINT>(width);
+        texDesc.Height = static_cast<UINT>(height);
         texDesc.MipLevels = 1;
         texDesc.ArraySize = 1;
         texDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -82,9 +74,7 @@ namespace engine::renderer {
         texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
         HRESULT hr = m_device->CreateTexture2D(&texDesc, nullptr, &m_depthStencilTexture);
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to create depth stencil texture");
-        }
+        if (FAILED(hr)) throw std::runtime_error("Failed to create depth texture");
 
         D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
         dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -92,77 +82,106 @@ namespace engine::renderer {
         dsvDesc.Texture2D.MipSlice = 0;
 
         hr = m_device->CreateDepthStencilView(
-            m_depthStencilTexture.Get(),
-            &dsvDesc,
-            &m_depthStencilView
-        );
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to create depth stencil view");
-        }
+            m_depthStencilTexture.Get(), &dsvDesc, &m_depthStencilView);
+        if (FAILED(hr)) throw std::runtime_error("Failed to create depth stencil view");
 
-        D3D11_DEPTH_STENCIL_DESC dsDesc = {};
-        dsDesc.DepthEnable = TRUE;
-        dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-        dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
-        dsDesc.StencilEnable = FALSE;
-
-        hr = m_device->CreateDepthStencilState(&dsDesc, &m_depthStencilState);
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to create depth stencil state");
-        }
-
-        LOG_DEBUG("Depth stencil buffer created (" +
-            std::to_string(width) + "x" + std::to_string(height) + ")");
+        rebuildDepthStencilState();
     }
 
     void GraphicsDevice::releaseDepthStencilBuffer() {
         m_depthStencilView.Reset();
         m_depthStencilTexture.Reset();
+        m_depthStencilState.Reset();
+    }
+
+    void GraphicsDevice::rebuildDepthStencilState() {
+        D3D11_DEPTH_STENCIL_DESC dsDesc = {};
+        dsDesc.DepthEnable = TRUE;
+        dsDesc.DepthWriteMask = m_depthWrite
+                                    ? D3D11_DEPTH_WRITE_MASK_ALL
+                                    : D3D11_DEPTH_WRITE_MASK_ZERO;
+        dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+        dsDesc.StencilEnable = FALSE;
+
+        m_depthStencilState.Reset();
+        HRESULT hr = m_device->CreateDepthStencilState(&dsDesc, &m_depthStencilState);
+        if (FAILED(hr)) throw std::runtime_error("Failed to create depth stencil state");
     }
 
     void GraphicsDevice::rebuildRasterizerState() {
         D3D11_RASTERIZER_DESC rsDesc = {};
-
-        switch (m_fillMode) {
-            case FillMode::Solid: rsDesc.FillMode = D3D11_FILL_SOLID;
-                break;
-            case FillMode::Wireframe: rsDesc.FillMode = D3D11_FILL_WIREFRAME;
-                break;
-        }
-
-        switch (m_cullMode) {
-            case CullMode::None: rsDesc.CullMode = D3D11_CULL_NONE;
-                break;
-            case CullMode::Front: rsDesc.CullMode = D3D11_CULL_FRONT;
-                break;
-            case CullMode::Back: rsDesc.CullMode = D3D11_CULL_BACK;
-                break;
-        }
-
+        rsDesc.FillMode = (m_fillMode == FillMode::Wireframe)
+                              ? D3D11_FILL_WIREFRAME
+                              : D3D11_FILL_SOLID;
+        rsDesc.CullMode = (m_cullMode == CullMode::None)
+                              ? D3D11_CULL_NONE
+                              : (m_cullMode == CullMode::Front)
+                                    ? D3D11_CULL_FRONT
+                                    : D3D11_CULL_BACK;
         rsDesc.FrontCounterClockwise = FALSE;
         rsDesc.DepthClipEnable = TRUE;
-        rsDesc.ScissorEnable = FALSE;
-        rsDesc.MultisampleEnable = FALSE;
-        rsDesc.AntialiasedLineEnable = FALSE;
-        rsDesc.DepthBias = 0;
-        rsDesc.DepthBiasClamp = 0.0f;
-        rsDesc.SlopeScaledDepthBias = 0.0f;
 
         m_rasterizerState.Reset();
         HRESULT hr = m_device->CreateRasterizerState(&rsDesc, &m_rasterizerState);
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to create rasterizer state");
+        if (FAILED(hr)) throw std::runtime_error("Failed to create rasterizer state");
+    }
+
+    void GraphicsDevice::rebuildBlendState() {
+        D3D11_BLEND_DESC desc = {};
+        auto &rt = desc.RenderTarget[0];
+
+        rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+        switch (m_blendMode) {
+            case BlendMode::Opaque:
+                rt.BlendEnable = FALSE;
+                break;
+
+            case BlendMode::AlphaBlend:
+                rt.BlendEnable = TRUE;
+                rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                rt.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+                rt.BlendOp = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.DestBlendAlpha = D3D11_BLEND_ZERO;
+                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                break;
+
+            case BlendMode::Additive:
+                rt.BlendEnable = TRUE;
+                rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                rt.DestBlend = D3D11_BLEND_ONE;
+                rt.BlendOp = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.DestBlendAlpha = D3D11_BLEND_ZERO;
+                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                break;
+
+            case BlendMode::Multiplicative:
+                rt.BlendEnable = TRUE;
+                rt.SrcBlend = D3D11_BLEND_DEST_COLOR;
+                rt.DestBlend = D3D11_BLEND_ZERO;
+                rt.BlendOp = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.DestBlendAlpha = D3D11_BLEND_ZERO;
+                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                break;
         }
+
+        m_blendState.Reset();
+        HRESULT hr = m_device->CreateBlendState(&desc, &m_blendState);
+        if (FAILED(hr)) throw std::runtime_error("Failed to create blend state");
     }
 
     void GraphicsDevice::beginFrame(float r, float g, float b) {
         m_context->OMSetRenderTargets(
-            1,
-            m_renderTargetView.GetAddressOf(),
-            m_depthStencilView.Get()
-        );
+            1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
         m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+
+        float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
+
         m_context->RSSetState(m_rasterizerState.Get());
 
         float color[4] = {r, g, b, 1.0f};
@@ -170,8 +189,7 @@ namespace engine::renderer {
         m_context->ClearDepthStencilView(
             m_depthStencilView.Get(),
             D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-            1.0f,
-            0
+            1.0f, 0
         );
 
         D3D11_VIEWPORT viewport = {};
@@ -195,10 +213,9 @@ namespace engine::renderer {
         releaseRenderTargetView();
         releaseDepthStencilBuffer();
 
-        HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to resize swap chain buffers");
-        }
+        HRESULT hr = m_swapChain->ResizeBuffers(
+            0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+        if (FAILED(hr)) throw std::runtime_error("Failed to resize swap chain");
 
         createRenderTargetView();
         createDepthStencilBuffer(width, height);
@@ -215,6 +232,16 @@ namespace engine::renderer {
     void GraphicsDevice::setCullMode(CullMode mode) {
         m_cullMode = mode;
         rebuildRasterizerState();
+    }
+
+    void GraphicsDevice::setBlendMode(BlendMode mode) {
+        m_blendMode = mode;
+        rebuildBlendState();
+    }
+
+    void GraphicsDevice::setDepthWriteEnabled(bool enabled) {
+        m_depthWrite = enabled;
+        rebuildDepthStencilState();
     }
 
     ID3D11Device *GraphicsDevice::getDevice() const { return m_device.Get(); }
