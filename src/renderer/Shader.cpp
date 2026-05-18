@@ -13,6 +13,10 @@ Shader::Shader(ID3D11Device*                        device,
                const std::wstring&                  psPath,
                const std::vector<InputElementDesc>&  layout)
 {
+    std::string vsPathString(vsPath.begin(), vsPath.end());
+    std::string psPathString(psPath.begin(), psPath.end());
+    LOG_DEBUG("Compiling shader: VS=" + vsPathString + ", PS=" + psPathString);
+
     std::vector<char> vsBytecode = compileFromFile(vsPath, "main", "vs_5_0");
     std::vector<char> psBytecode = compileFromFile(psPath, "main", "ps_5_0");
 
@@ -68,7 +72,7 @@ Shader::Shader(ID3D11Device*                        device,
         }
     }
 
-    LOG_INFO("Shader compiled and linked successfully");
+    LOG_INFO("Shader compiled and linked successfully: VS=" + vsPathString + ", PS=" + psPathString);
 }
 
 void Shader::bind(ID3D11DeviceContext* context) const {

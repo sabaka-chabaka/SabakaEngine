@@ -18,8 +18,10 @@ namespace engine::platform {
         wc.lpszClassName = CLASS_NAME;
 
         if (!RegisterClassExW(&wc)) {
+            LOG_FATAL("Failed to register window class");
             throw std::runtime_error("Failed to register window class");
         }
+        LOG_DEBUG("Window class registered");
 
         RECT rect = { 0, 0, m_width, m_height };
         AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
@@ -39,8 +41,11 @@ namespace engine::platform {
     );
 
         if (!m_hwnd) {
+            LOG_FATAL("Failed to create window");
             throw std::runtime_error("Failed to create window");
         }
+
+        LOG_INFO("Window created: " + std::to_string(m_width) + "x" + std::to_string(m_height));
 
         ShowWindow(m_hwnd, SW_SHOW);
         UpdateWindow(m_hwnd);

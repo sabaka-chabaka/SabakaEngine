@@ -35,7 +35,10 @@ namespace engine::renderer {
             D3D11_SDK_VERSION, &scd,
             &m_swapChain, &m_device, &featureLevel, &m_context
         );
-        if (FAILED(hr)) throw std::runtime_error("Failed to create D3D11 device");
+        if (FAILED(hr)) {
+            LOG_FATAL("Failed to create D3D11 device and swap chain");
+            throw std::runtime_error("Failed to create D3D11 device");
+        }
 
         {
             const char* levelStr = "Unknown";
@@ -65,7 +68,7 @@ namespace engine::renderer {
         rebuildRasterizerState();
         rebuildBlendState();
 
-        LOG_INFO("GraphicsDevice ready");
+        LOG_INFO("GraphicsDevice initialized successfully");
     }
 
     void GraphicsDevice::createRenderTargetView() {
@@ -104,6 +107,8 @@ namespace engine::renderer {
         if (FAILED(m_device->CreateDepthStencilView(
             m_depthStencilTexture.Get(), &dsvDesc, &m_depthStencilView)))
             throw std::runtime_error("Failed to create DSV");
+
+        LOG_DEBUG("Depth stencil buffer created (" + std::to_string(width) + "x" + std::to_string(height) + ")");
 
         rebuildDepthStencilState();
     }

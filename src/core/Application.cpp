@@ -110,6 +110,7 @@ namespace engine::core {
         sampDesc.wrapU = renderer::WrapMode::Repeat;
         sampDesc.wrapV = renderer::WrapMode::Repeat;
 
+        LOG_DEBUG("Creating main sampler...");
         m_sampler = std::make_unique<renderer::SamplerState>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext(),
@@ -117,6 +118,7 @@ namespace engine::core {
         );
 
         LOG_DEBUG("Initializing skybox...");
+        LOG_DEBUG("Creating skybox...");
         m_skyboxMesh = std::make_unique<renderer::SkyboxMesh>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
@@ -124,6 +126,7 @@ namespace engine::core {
 
         std::vector<renderer::InputElementDesc> skyboxLayout = {};
 
+        LOG_DEBUG("Compiling skybox shader...");
         m_skyboxShader = std::make_unique<renderer::Shader>(
             m_graphics->getDevice(),
             L"shaders/Skybox.vs.hlsl",
@@ -145,6 +148,7 @@ namespace engine::core {
             exeDir + "/textures/skybox/back.png",
         };
 
+        LOG_DEBUG("Loading skybox textures...");
         m_skyboxTexture = std::make_unique<renderer::CubemapTexture>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext(),
@@ -156,6 +160,7 @@ namespace engine::core {
         skyboxSampDesc.wrapU  = renderer::WrapMode::Clamp;
         skyboxSampDesc.wrapV  = renderer::WrapMode::Clamp;
 
+        LOG_DEBUG("Creating skybox sampler...");
         m_skyboxSampler = std::make_unique<renderer::SamplerState>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext(),
