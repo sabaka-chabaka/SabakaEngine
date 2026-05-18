@@ -8,6 +8,8 @@ namespace engine::renderer {
         DirectX::XMFLOAT3 lightDirection = { 0.0f, -1.0f, 1.0f };
         float             padding;
         DirectX::XMFLOAT4 lightColor     = { 1.0f, 1.0f, 1.0f, 1.0f };
+        DirectX::XMFLOAT3 viewPos;
+        float             _pad2;
     };
 
     static_assert(sizeof(LightData) % 16 == 0, "LightData must be 16-byte aligned");

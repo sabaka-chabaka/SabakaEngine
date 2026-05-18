@@ -300,6 +300,7 @@ namespace engine::core {
                     m_materialCB->update(material);
                     m_materialCB->bindPS(1);
 
+                    light.viewPos = m_camera->getPosition();
                     m_lightCB->update(light);
                     m_lightCB->bindPS(2);
 

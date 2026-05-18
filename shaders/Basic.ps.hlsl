@@ -26,6 +26,8 @@ cbuffer LightBuffer : register(b2)
     float3 lightDirection;
     float  _lightPad;
     float4 lightColor;
+    float3 viewPos;
+    float  _lightPad2;
 };
 
 float4 main(PSInput input) : SV_TARGET
@@ -44,7 +46,16 @@ float4 main(PSInput input) : SV_TARGET
     float  diff         = max(dot(normal, lightDir), 0.0);
     float3 diffuseLight = diff * lightColor.rgb;
 
-    float3 result       = saturate(ambient + (diffuseLight * baseColor) + specularGlow);
+    float3 viewDir      = normalize(viewPos - input.worldPos);
+    float3 reflectDir   = reflect(-lightDir, normal);
+    float  specPhong    = pow(max(dot(viewDir, reflectDir), 0.0), specularPower);
+
+    float3 halfwayDir   = normalize(lightDir + viewDir);
+    float  specBlinn    = pow(max(dot(normal, halfwayDir), 0.0), specularPower);
+
+    float3 specularFinal = specular.rgb * specularIntensity * specBlinn * lightColor.rgb;
+
+    float3 result       = saturate(ambient + (diffuseLight * baseColor) + specularFinal + specularGlow);
 
     return float4(result, diffuse.a);
 }
