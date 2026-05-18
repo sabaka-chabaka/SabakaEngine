@@ -23,6 +23,9 @@ struct PSInput
 cbuffer LightBuffer : register(b2)
 {
     float4 ambientColor;
+    float3 lightDirection;
+    float  _lightPad;
+    float4 lightColor;
 };
 
 float4 main(PSInput input) : SV_TARGET
@@ -36,7 +39,12 @@ float4 main(PSInput input) : SV_TARGET
     float3 ambient      = baseColor * ambientColor.rgb;
     float3 specularGlow = specular.rgb * specularIntensity;
 
-    float3 result       = saturate(ambient + specularGlow);
+    float3 normal       = normalize(input.worldNormal);
+    float3 lightDir     = normalize(-lightDirection);
+    float  diff         = max(dot(normal, lightDir), 0.0);
+    float3 diffuseLight = diff * lightColor.rgb;
+
+    float3 result       = saturate(ambient + (diffuseLight * baseColor) + specularGlow);
 
     return float4(result, diffuse.a);
 }

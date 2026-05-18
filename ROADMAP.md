@@ -30,8 +30,8 @@
 ```
 [✓] 19. Нормали в вершинах + пересчёт в шейдере
 [✓] 20. Ambient освещение (глобальная константа)
-[ ] 21. Directional Light (бесконечно далёкий, направление)
-[ ] 22. Diffuse Lambert (dot(N, L))
+[✓] 21. Directional Light (бесконечно далёкий, направление)
+[✓] 22. Diffuse Lambert (dot(N, L))
 [ ] 23. Specular Phong (reflect + dot)
 [ ] 24. Specular Blinn-Phong (half-vector, быстрее)
 [ ] 25. Point Light (затухание 1/d²)

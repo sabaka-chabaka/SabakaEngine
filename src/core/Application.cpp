@@ -203,7 +203,9 @@ namespace engine::core {
         material.uvOffset = {0.0f, 0.0f};
 
         renderer::LightData light;
-        light.ambientColor = { 0.3f, 0.3f, 0.35f, 1.0f };
+        light.ambientColor   = { 0.3f, 0.3f, 0.35f, 1.0f };
+        light.lightDirection = { 1.0f, -1.0f, 1.0f };
+        light.lightColor     = { 1.0f, 1.0f, 0.9f, 1.0f };
 
         try {
             while (m_window->processMessages()) {
