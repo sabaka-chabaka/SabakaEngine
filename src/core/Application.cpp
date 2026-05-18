@@ -212,8 +212,10 @@ namespace engine::core {
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
 
+                // ── Pass 1: Skybox ──────────────────────────────
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(false);
+                m_graphics->setDepthFunc(renderer::DepthFunc::LessEqual);
                 m_graphics->setCullMode(renderer::CullMode::Front);
 
                 {
@@ -235,6 +237,7 @@ namespace engine::core {
 
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(true);
+                m_graphics->setDepthFunc(renderer::DepthFunc::Less);
                 m_graphics->setCullMode(renderer::CullMode::Back);
 
                 {

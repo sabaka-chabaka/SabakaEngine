@@ -35,10 +35,7 @@ namespace engine::renderer {
             D3D11_SDK_VERSION, &scd,
             &m_swapChain, &m_device, &featureLevel, &m_context
         );
-
-        if (FAILED(hr)) {
-            throw std::runtime_error("Failed to create D3D11 device and swap chain");
-        }
+        if (FAILED(hr)) throw std::runtime_error("Failed to create D3D11 device");
 
         createRenderTargetView();
         createDepthStencilBuffer(m_width, m_height);
@@ -50,11 +47,11 @@ namespace engine::renderer {
 
     void GraphicsDevice::createRenderTargetView() {
         ComPtr<ID3D11Texture2D> backBuffer;
-        HRESULT hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-        if (FAILED(hr)) throw std::runtime_error("Failed to get back buffer");
+        if (FAILED(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
+            throw std::runtime_error("Failed to get back buffer");
 
-        hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView);
-        if (FAILED(hr)) throw std::runtime_error("Failed to create render target view");
+        if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
+            throw std::runtime_error("Failed to create RTV");
     }
 
     void GraphicsDevice::releaseRenderTargetView() {
@@ -73,17 +70,17 @@ namespace engine::renderer {
         texDesc.Usage = D3D11_USAGE_DEFAULT;
         texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-        HRESULT hr = m_device->CreateTexture2D(&texDesc, nullptr, &m_depthStencilTexture);
-        if (FAILED(hr)) throw std::runtime_error("Failed to create depth texture");
+        if (FAILED(m_device->CreateTexture2D(&texDesc, nullptr, &m_depthStencilTexture)))
+            throw std::runtime_error("Failed to create depth texture");
 
         D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
         dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Texture2D.MipSlice = 0;
 
-        hr = m_device->CreateDepthStencilView(
-            m_depthStencilTexture.Get(), &dsvDesc, &m_depthStencilView);
-        if (FAILED(hr)) throw std::runtime_error("Failed to create depth stencil view");
+        if (FAILED(m_device->CreateDepthStencilView(
+            m_depthStencilTexture.Get(), &dsvDesc, &m_depthStencilView)))
+            throw std::runtime_error("Failed to create DSV");
 
         rebuildDepthStencilState();
     }
@@ -100,12 +97,14 @@ namespace engine::renderer {
         dsDesc.DepthWriteMask = m_depthWrite
                                     ? D3D11_DEPTH_WRITE_MASK_ALL
                                     : D3D11_DEPTH_WRITE_MASK_ZERO;
-        dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+        dsDesc.DepthFunc = (m_depthFunc == DepthFunc::LessEqual)
+                               ? D3D11_COMPARISON_LESS_EQUAL
+                               : D3D11_COMPARISON_LESS;
         dsDesc.StencilEnable = FALSE;
 
         m_depthStencilState.Reset();
-        HRESULT hr = m_device->CreateDepthStencilState(&dsDesc, &m_depthStencilState);
-        if (FAILED(hr)) throw std::runtime_error("Failed to create depth stencil state");
+        if (FAILED(m_device->CreateDepthStencilState(&dsDesc, &m_depthStencilState)))
+            throw std::runtime_error("Failed to create depth stencil state");
     }
 
     void GraphicsDevice::rebuildRasterizerState() {
@@ -122,21 +121,19 @@ namespace engine::renderer {
         rsDesc.DepthClipEnable = TRUE;
 
         m_rasterizerState.Reset();
-        HRESULT hr = m_device->CreateRasterizerState(&rsDesc, &m_rasterizerState);
-        if (FAILED(hr)) throw std::runtime_error("Failed to create rasterizer state");
+        if (FAILED(m_device->CreateRasterizerState(&rsDesc, &m_rasterizerState)))
+            throw std::runtime_error("Failed to create rasterizer state");
     }
 
     void GraphicsDevice::rebuildBlendState() {
         D3D11_BLEND_DESC desc = {};
         auto &rt = desc.RenderTarget[0];
-
         rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
         switch (m_blendMode) {
             case BlendMode::Opaque:
                 rt.BlendEnable = FALSE;
                 break;
-
             case BlendMode::AlphaBlend:
                 rt.BlendEnable = TRUE;
                 rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -146,7 +143,6 @@ namespace engine::renderer {
                 rt.DestBlendAlpha = D3D11_BLEND_ZERO;
                 rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
                 break;
-
             case BlendMode::Additive:
                 rt.BlendEnable = TRUE;
                 rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -156,7 +152,6 @@ namespace engine::renderer {
                 rt.DestBlendAlpha = D3D11_BLEND_ZERO;
                 rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
                 break;
-
             case BlendMode::Multiplicative:
                 rt.BlendEnable = TRUE;
                 rt.SrcBlend = D3D11_BLEND_DEST_COLOR;
@@ -169,19 +164,17 @@ namespace engine::renderer {
         }
 
         m_blendState.Reset();
-        HRESULT hr = m_device->CreateBlendState(&desc, &m_blendState);
-        if (FAILED(hr)) throw std::runtime_error("Failed to create blend state");
+        if (FAILED(m_device->CreateBlendState(&desc, &m_blendState)))
+            throw std::runtime_error("Failed to create blend state");
     }
 
     void GraphicsDevice::beginFrame(float r, float g, float b) {
         m_context->OMSetRenderTargets(
             1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
-
         m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
-        float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        float blendFactor[4] = {};
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
-
         m_context->RSSetState(m_rasterizerState.Get());
 
         float color[4] = {r, g, b, 1.0f};
@@ -192,12 +185,12 @@ namespace engine::renderer {
             1.0f, 0
         );
 
-        D3D11_VIEWPORT viewport = {};
-        viewport.Width = static_cast<float>(m_width);
-        viewport.Height = static_cast<float>(m_height);
-        viewport.MinDepth = 0.0f;
-        viewport.MaxDepth = 1.0f;
-        m_context->RSSetViewports(1, &viewport);
+        D3D11_VIEWPORT vp = {};
+        vp.Width = static_cast<float>(m_width);
+        vp.Height = static_cast<float>(m_height);
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
     }
 
     void GraphicsDevice::endFrame() {
@@ -213,9 +206,8 @@ namespace engine::renderer {
         releaseRenderTargetView();
         releaseDepthStencilBuffer();
 
-        HRESULT hr = m_swapChain->ResizeBuffers(
-            0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-        if (FAILED(hr)) throw std::runtime_error("Failed to resize swap chain");
+        if (FAILED(m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0)))
+            throw std::runtime_error("Failed to resize swap chain");
 
         createRenderTargetView();
         createDepthStencilBuffer(width, height);
@@ -241,6 +233,11 @@ namespace engine::renderer {
 
     void GraphicsDevice::setDepthWriteEnabled(bool enabled) {
         m_depthWrite = enabled;
+        rebuildDepthStencilState();
+    }
+
+    void GraphicsDevice::setDepthFunc(DepthFunc func) {
+        m_depthFunc = func;
         rebuildDepthStencilState();
     }
 
