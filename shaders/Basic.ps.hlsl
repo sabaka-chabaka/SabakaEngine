@@ -13,9 +13,11 @@ cbuffer MaterialBuffer : register(b1)
 
 struct PSInput
 {
-    float4 position : SV_POSITION;
-    float3 color    : COLOR;
-    float2 uv       : TEXCOORD0;
+    float4 position    : SV_POSITION;
+    float3 color       : COLOR;
+    float2 uv          : TEXCOORD0;
+    float3 worldNormal : TEXCOORD1;
+    float3 worldPos    : TEXCOORD2;
 };
 
 float4 main(PSInput input) : SV_TARGET
