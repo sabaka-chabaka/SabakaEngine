@@ -20,6 +20,11 @@ struct PSInput
     float3 worldPos    : TEXCOORD2;
 };
 
+cbuffer LightBuffer : register(b2)
+{
+    float4 ambientColor;
+};
+
 float4 main(PSInput input) : SV_TARGET
 {
     float2 finalUV      = input.uv * uvScale + uvOffset;
@@ -28,9 +33,10 @@ float4 main(PSInput input) : SV_TARGET
     float4 specular     = specularMap.Sample(sampler0, finalUV);
 
     float3 baseColor    = diffuse.rgb * input.color;
+    float3 ambient      = baseColor * ambientColor.rgb;
     float3 specularGlow = specular.rgb * specularIntensity;
 
-    float3 result       = saturate(baseColor + specularGlow);
+    float3 result       = saturate(ambient + specularGlow);
 
     return float4(result, diffuse.a);
 }

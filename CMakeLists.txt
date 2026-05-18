@@ -32,6 +32,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/SkyboxMesh.cpp
         src/renderer/SkyboxMesh.h
         src/renderer/SkyboxBuffer.h
+        src/renderer/Light.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)

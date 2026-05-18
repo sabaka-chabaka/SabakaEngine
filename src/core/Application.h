@@ -9,6 +9,7 @@
 #include "renderer/Texture2D.h"
 #include "renderer/SamplerState.h"
 #include "renderer/Material.h"
+#include "renderer/Light.h"
 #include <memory>
 
 #include "renderer/CubemapTexture.h"
@@ -38,6 +39,7 @@ namespace engine::core {
         std::unique_ptr<renderer::Camera>                                   m_camera;
         std::unique_ptr<renderer::ConstantBuffer<renderer::TransformData>>  m_transformCB;
         std::unique_ptr<renderer::ConstantBuffer<renderer::MaterialData>>   m_materialCB;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::LightData>>      m_lightCB;
         std::unique_ptr<renderer::Texture2D>                                m_diffuseTexture;
         std::unique_ptr<renderer::Texture2D>                                m_specularTexture;
         std::unique_ptr<renderer::SamplerState>                             m_sampler;

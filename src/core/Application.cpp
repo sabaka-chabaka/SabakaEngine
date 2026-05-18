@@ -80,6 +80,11 @@ namespace engine::core {
             m_graphics->getDeviceContext()
         );
 
+        m_lightCB = std::make_unique<renderer::ConstantBuffer<renderer::LightData>>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+
         std::string exeDir = getExeDir();
 
         renderer::TextureDesc texDesc;
@@ -197,6 +202,9 @@ namespace engine::core {
         material.uvScale = {1.0f, 1.0f};
         material.uvOffset = {0.0f, 0.0f};
 
+        renderer::LightData light;
+        light.ambientColor = { 0.3f, 0.3f, 0.35f, 1.0f };
+
         try {
             while (m_window->processMessages()) {
                 auto now = Clock::now();
@@ -290,7 +298,11 @@ namespace engine::core {
                     m_materialCB->update(material);
                     m_materialCB->bindPS(1);
 
+                    m_lightCB->update(light);
+                    m_lightCB->bindPS(2);
+
                     m_shader->bind(m_graphics->getDeviceContext());
+
                     m_diffuseTexture->bindPS(0);
                     m_specularTexture->bindPS(1);
                     m_sampler->bindPS(0);
