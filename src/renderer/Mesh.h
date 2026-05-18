@@ -10,6 +10,7 @@ namespace engine::renderer {
         float x, y, z;
         float r, g, b;
         float u, v;
+        float nx, ny, nz;
     };
 
     class Mesh {

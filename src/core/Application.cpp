@@ -52,8 +52,9 @@ namespace engine::core {
 
         std::vector<renderer::InputElementDesc> cubeLayout = {
             {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
-            {"COLOR", DXGI_FORMAT_R32G32B32_FLOAT, 12},
-            {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT, 24},
+            {"COLOR",    DXGI_FORMAT_R32G32B32_FLOAT, 12},
+            {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT,    24},
+            {"NORMAL",   DXGI_FORMAT_R32G32B32_FLOAT, 32},
         };
 
         m_shader = std::make_unique<renderer::Shader>(
@@ -265,10 +266,15 @@ namespace engine::core {
                         totalTime * 0.2f
                     );
 
+                    XMMATRIX normalMatrix = XMMatrixTranspose(
+                        XMMatrixInverse(nullptr, model)
+                    );
+
                     renderer::TransformData td;
-                    td.model = XMMatrixTranspose(model);
-                    td.view = XMMatrixTranspose(view);
-                    td.projection = XMMatrixTranspose(projection);
+                    td.model        = XMMatrixTranspose(model);
+                    td.view         = XMMatrixTranspose(view);
+                    td.projection   = XMMatrixTranspose(projection);
+                    td.normalMatrix = XMMatrixTranspose(normalMatrix);
 
                     m_transformCB->update(td);
                     m_transformCB->bindVS(0);

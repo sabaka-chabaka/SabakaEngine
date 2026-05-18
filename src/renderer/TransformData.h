@@ -7,6 +7,7 @@ namespace engine::renderer {
         DirectX::XMMATRIX model;
         DirectX::XMMATRIX view;
         DirectX::XMMATRIX projection;
+        DirectX::XMMATRIX normalMatrix;
     };
 
 }
