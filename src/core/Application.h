@@ -11,6 +11,10 @@
 #include "renderer/Material.h"
 #include <memory>
 
+#include "renderer/CubemapTexture.h"
+#include "renderer/SkyboxBuffer.h"
+#include "renderer/SkyboxMesh.h"
+
 
 namespace engine::core {
     class Application {
@@ -37,5 +41,10 @@ namespace engine::core {
         std::unique_ptr<renderer::Texture2D>                                m_diffuseTexture;
         std::unique_ptr<renderer::Texture2D>                                m_specularTexture;
         std::unique_ptr<renderer::SamplerState>                             m_sampler;
+
+        std::unique_ptr<renderer::SkyboxMesh>                               m_skyboxMesh;
+        std::unique_ptr<renderer::Shader>                                   m_skyboxShader;
+        std::unique_ptr<renderer::CubemapTexture>                           m_skyboxTexture;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::SkyboxData>>     m_skyboxCB;
     };
 }

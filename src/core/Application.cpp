@@ -30,7 +30,7 @@ namespace engine::core {
         wDesc.height = 720;
 
         m_window = std::make_unique<platform::Window>(wDesc);
-        LOG_INFO("Window created (1280x720)");
+        LOG_INFO("Window created");
 
         InputSystem::get().initialize(m_window->getNativeHandle());
 
@@ -50,7 +50,7 @@ namespace engine::core {
             )
         );
 
-        std::vector<renderer::InputElementDesc> layout = {
+        std::vector<renderer::InputElementDesc> cubeLayout = {
             {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
             {"COLOR", DXGI_FORMAT_R32G32B32_FLOAT, 12},
             {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT, 24},
@@ -60,21 +60,7 @@ namespace engine::core {
             m_graphics->getDevice(),
             L"shaders/Basic.vs.hlsl",
             L"shaders/Basic.ps.hlsl",
-            layout
-        );
-
-        renderer::CameraDesc camDesc;
-        camDesc.position = {0.0f, 1.5f, -4.0f};
-        camDesc.target = {0.0f, 0.0f, 0.0f};
-        camDesc.up = {0.0f, 1.0f, 0.0f};
-        camDesc.fovY = XM_PIDIV4;
-        camDesc.nearZ = 0.1f;
-        camDesc.farZ = 1000.0f;
-
-        m_camera = std::make_unique<renderer::Camera>(camDesc);
-        m_camera->setAspectRatio(
-            static_cast<float>(m_window->getWidth()) /
-            static_cast<float>(m_window->getHeight())
+            cubeLayout
         );
 
         m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData> >(
@@ -91,7 +77,6 @@ namespace engine::core {
 
         renderer::TextureDesc texDesc;
         texDesc.generateMips = true;
-        texDesc.srgb = false;
 
         m_diffuseTexture = std::make_unique<renderer::Texture2D>(
             m_graphics->getDevice(),
@@ -118,6 +103,56 @@ namespace engine::core {
             sampDesc
         );
 
+        m_skyboxMesh = std::make_unique<renderer::SkyboxMesh>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+
+        std::vector<renderer::InputElementDesc> skyboxLayout = {
+            {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
+        };
+
+        m_skyboxShader = std::make_unique<renderer::Shader>(
+            m_graphics->getDevice(),
+            L"shaders/Skybox.vs.hlsl",
+            L"shaders/Skybox.ps.hlsl",
+            skyboxLayout
+        );
+
+        m_skyboxCB = std::make_unique<renderer::ConstantBuffer<renderer::SkyboxData> >(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+
+        std::array<std::string, 6> skyboxFaces = {
+            exeDir + "/textures/skybox/right.png",
+            exeDir + "/textures/skybox/left.png",
+            exeDir + "/textures/skybox/top.png",
+            exeDir + "/textures/skybox/bottom.png",
+            exeDir + "/textures/skybox/front.png",
+            exeDir + "/textures/skybox/back.png",
+        };
+
+        m_skyboxTexture = std::make_unique<renderer::CubemapTexture>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            skyboxFaces
+        );
+
+        renderer::CameraDesc camDesc;
+        camDesc.position = {0.0f, 1.5f, -4.0f};
+        camDesc.target = {0.0f, 0.0f, 0.0f};
+        camDesc.up = {0.0f, 1.0f, 0.0f};
+        camDesc.fovY = XM_PIDIV4;
+        camDesc.nearZ = 0.1f;
+        camDesc.farZ = 1000.0f;
+
+        m_camera = std::make_unique<renderer::Camera>(camDesc);
+        m_camera->setAspectRatio(
+            static_cast<float>(m_window->getWidth()) /
+            static_cast<float>(m_window->getHeight())
+        );
+
         m_window->setResizeCallback([this](int w, int h) {
             LOG_DEBUG("Window resized: " + std::to_string(w) + "x" + std::to_string(h));
             m_graphics->onResize(w, h);
@@ -138,17 +173,11 @@ namespace engine::core {
         auto lastTime = Clock::now();
         float totalTime = 0.0f;
 
-        renderer::MaterialData opaqueMaterial;
-        opaqueMaterial.specularIntensity = 0.6f;
-        opaqueMaterial.specularPower = 32.0f;
-        opaqueMaterial.uvScale = {1.0f, 1.0f};
-        opaqueMaterial.uvOffset = {0.0f, 0.0f};
-
-        renderer::MaterialData transparentMaterial;
-        transparentMaterial.specularIntensity = 0.3f;
-        transparentMaterial.specularPower = 16.0f;
-        transparentMaterial.uvScale = {1.0f, 1.0f};
-        transparentMaterial.uvOffset = {0.0f, 0.0f};
+        renderer::MaterialData material;
+        material.specularIntensity = 0.6f;
+        material.specularPower = 32.0f;
+        material.uvScale = {1.0f, 1.0f};
+        material.uvOffset = {0.0f, 0.0f};
 
         try {
             while (m_window->processMessages()) {
@@ -182,13 +211,31 @@ namespace engine::core {
                 XMMATRIX projection = m_camera->getProjectionMatrix();
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
-                m_shader->bind(m_graphics->getDeviceContext());
-                m_diffuseTexture->bindPS(0);
-                m_specularTexture->bindPS(1);
-                m_sampler->bindPS(0);
+
+                m_graphics->setBlendMode(renderer::BlendMode::Opaque);
+                m_graphics->setDepthWriteEnabled(false);
+                m_graphics->setCullMode(renderer::CullMode::Front);
+
+                {
+                    XMMATRIX viewNoTranslation = view;
+                    viewNoTranslation.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
+                    renderer::SkyboxData sd;
+                    sd.viewNoTranslation = XMMatrixTranspose(viewNoTranslation);
+                    sd.projection = XMMatrixTranspose(projection);
+
+                    m_skyboxCB->update(sd);
+                    m_skyboxCB->bindVS(0);
+
+                    m_skyboxShader->bind(m_graphics->getDeviceContext());
+                    m_skyboxTexture->bindPS(0);
+                    m_sampler->bindPS(0);
+                    m_skyboxMesh->draw();
+                }
 
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(true);
+                m_graphics->setCullMode(renderer::CullMode::Back);
 
                 {
                     XMMATRIX model = XMMatrixRotationRollPitchYaw(
@@ -205,36 +252,13 @@ namespace engine::core {
                     m_transformCB->update(td);
                     m_transformCB->bindVS(0);
 
-                    m_materialCB->update(opaqueMaterial);
+                    m_materialCB->update(material);
                     m_materialCB->bindPS(1);
 
-                    m_mesh->draw();
-                }
-
-                m_graphics->setBlendMode(renderer::BlendMode::AlphaBlend);
-                m_graphics->setDepthWriteEnabled(false);
-
-                {
-                    XMMATRIX model = XMMatrixMultiply(
-                        XMMatrixRotationRollPitchYaw(
-                            totalTime * 0.2f,
-                            totalTime * 0.4f,
-                            totalTime * 0.6f
-                        ),
-                        XMMatrixTranslation(1.5f, 0.0f, 0.5f)
-                    );
-
-                    renderer::TransformData td;
-                    td.model = XMMatrixTranspose(model);
-                    td.view = XMMatrixTranspose(view);
-                    td.projection = XMMatrixTranspose(projection);
-
-                    m_transformCB->update(td);
-                    m_transformCB->bindVS(0);
-
-                    m_materialCB->update(transparentMaterial);
-                    m_materialCB->bindPS(1);
-
+                    m_shader->bind(m_graphics->getDeviceContext());
+                    m_diffuseTexture->bindPS(0);
+                    m_specularTexture->bindPS(1);
+                    m_sampler->bindPS(0);
                     m_mesh->draw();
                 }
 
