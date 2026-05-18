@@ -64,7 +64,7 @@ namespace engine::core {
         );
 
         renderer::CameraDesc camDesc;
-        camDesc.position = {0.0f, 1.5f, -3.0f};
+        camDesc.position = {0.0f, 1.5f, -4.0f};
         camDesc.target = {0.0f, 0.0f, 0.0f};
         camDesc.up = {0.0f, 1.0f, 0.0f};
         camDesc.fovY = XM_PIDIV4;
@@ -138,14 +138,17 @@ namespace engine::core {
         auto lastTime = Clock::now();
         float totalTime = 0.0f;
 
-        m_graphics->setFillMode(renderer::FillMode::Solid);
-        m_graphics->setCullMode(renderer::CullMode::None);
+        renderer::MaterialData opaqueMaterial;
+        opaqueMaterial.specularIntensity = 0.6f;
+        opaqueMaterial.specularPower = 32.0f;
+        opaqueMaterial.uvScale = {1.0f, 1.0f};
+        opaqueMaterial.uvOffset = {0.0f, 0.0f};
 
-        renderer::MaterialData material;
-        material.specularIntensity = 0.6f;
-        material.specularPower = 32.0f;
-        material.uvScale = {1.0f, 1.0f};
-        material.uvOffset = {0.0f, 0.0f};
+        renderer::MaterialData transparentMaterial;
+        transparentMaterial.specularIntensity = 0.3f;
+        transparentMaterial.specularPower = 16.0f;
+        transparentMaterial.uvScale = {1.0f, 1.0f};
+        transparentMaterial.uvOffset = {0.0f, 0.0f};
 
         try {
             while (m_window->processMessages()) {
@@ -166,39 +169,74 @@ namespace engine::core {
 
                 if (input.isKeyPressed(Key::F1)) {
                     m_graphics->setFillMode(renderer::FillMode::Wireframe);
-                    LOG_INFO("Wireframe mode");
+                    LOG_INFO("Wireframe ON");
                 }
                 if (input.isKeyPressed(Key::F2)) {
                     m_graphics->setFillMode(renderer::FillMode::Solid);
-                    LOG_INFO("Solid mode");
+                    LOG_INFO("Wireframe OFF");
                 }
 
                 onUpdate(deltaTime);
 
-                XMMATRIX model = XMMatrixRotationRollPitchYaw(
-                    totalTime * 0.4f,
-                    totalTime * 0.8f,
-                    totalTime * 0.2f
-                );
-
-                renderer::TransformData td;
-                td.model = XMMatrixTranspose(model);
-                td.view = XMMatrixTranspose(m_camera->getViewMatrix());
-                td.projection = XMMatrixTranspose(m_camera->getProjectionMatrix());
-
-                m_transformCB->update(td);
-                m_transformCB->bindVS(0);
-
-                m_materialCB->update(material);
-                m_materialCB->bindPS(1);
+                XMMATRIX view = m_camera->getViewMatrix();
+                XMMATRIX projection = m_camera->getProjectionMatrix();
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
-
                 m_shader->bind(m_graphics->getDeviceContext());
                 m_diffuseTexture->bindPS(0);
                 m_specularTexture->bindPS(1);
                 m_sampler->bindPS(0);
-                m_mesh->draw();
+
+                m_graphics->setBlendMode(renderer::BlendMode::Opaque);
+                m_graphics->setDepthWriteEnabled(true);
+
+                {
+                    XMMATRIX model = XMMatrixRotationRollPitchYaw(
+                        totalTime * 0.4f,
+                        totalTime * 0.8f,
+                        totalTime * 0.2f
+                    );
+
+                    renderer::TransformData td;
+                    td.model = XMMatrixTranspose(model);
+                    td.view = XMMatrixTranspose(view);
+                    td.projection = XMMatrixTranspose(projection);
+
+                    m_transformCB->update(td);
+                    m_transformCB->bindVS(0);
+
+                    m_materialCB->update(opaqueMaterial);
+                    m_materialCB->bindPS(1);
+
+                    m_mesh->draw();
+                }
+
+                m_graphics->setBlendMode(renderer::BlendMode::AlphaBlend);
+                m_graphics->setDepthWriteEnabled(false);
+
+                {
+                    XMMATRIX model = XMMatrixMultiply(
+                        XMMatrixRotationRollPitchYaw(
+                            totalTime * 0.2f,
+                            totalTime * 0.4f,
+                            totalTime * 0.6f
+                        ),
+                        XMMatrixTranslation(1.5f, 0.0f, 0.5f)
+                    );
+
+                    renderer::TransformData td;
+                    td.model = XMMatrixTranspose(model);
+                    td.view = XMMatrixTranspose(view);
+                    td.projection = XMMatrixTranspose(projection);
+
+                    m_transformCB->update(td);
+                    m_transformCB->bindVS(0);
+
+                    m_materialCB->update(transparentMaterial);
+                    m_materialCB->bindPS(1);
+
+                    m_mesh->draw();
+                }
 
                 onRender();
                 m_graphics->endFrame();
