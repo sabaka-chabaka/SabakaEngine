@@ -29,9 +29,11 @@ namespace engine::core {
         wDesc.width = 1280;
         wDesc.height = 720;
 
+        LOG_DEBUG("Creating window...");
         m_window = std::make_unique<platform::Window>(wDesc);
-        LOG_INFO("Window created");
+        LOG_INFO("Window created: 1280x720");
 
+        LOG_DEBUG("Initializing input system...");
         InputSystem::get().initialize(m_window->getNativeHandle());
 
         renderer::GraphicsDeviceDesc gDesc;
@@ -40,9 +42,11 @@ namespace engine::core {
         gDesc.height = m_window->getHeight();
         gDesc.vsync = true;
 
+        LOG_DEBUG("Initializing GraphicsDevice...");
         m_graphics = std::make_unique<renderer::GraphicsDevice>(gDesc);
         LOG_INFO("DirectX 11 device initialized");
 
+        LOG_DEBUG("Creating base cube mesh...");
         m_mesh = std::make_unique<renderer::Mesh>(
             renderer::Mesh::createCube(
                 m_graphics->getDevice(),
@@ -57,6 +61,7 @@ namespace engine::core {
             {"NORMAL",   DXGI_FORMAT_R32G32B32_FLOAT, 32},
         };
 
+        LOG_DEBUG("Compiling main shader...");
         m_shader = std::make_unique<renderer::Shader>(
             m_graphics->getDevice(),
             L"shaders/Basic.vs.hlsl",
@@ -64,6 +69,7 @@ namespace engine::core {
             cubeLayout
         );
 
+        LOG_DEBUG("Creating constant buffers...");
         m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData> >(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
@@ -79,6 +85,7 @@ namespace engine::core {
         renderer::TextureDesc texDesc;
         texDesc.generateMips = true;
 
+        LOG_DEBUG("Loading textures...");
         m_diffuseTexture = std::make_unique<renderer::Texture2D>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext(),
@@ -104,6 +111,7 @@ namespace engine::core {
             sampDesc
         );
 
+        LOG_DEBUG("Initializing skybox...");
         m_skyboxMesh = std::make_unique<renderer::SkyboxMesh>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()

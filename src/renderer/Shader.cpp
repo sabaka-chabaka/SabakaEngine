@@ -23,8 +23,10 @@ Shader::Shader(ID3D11Device*                        device,
         &m_vertexShader
     );
     if (FAILED(hr)) {
+        LOG_ERROR("Failed to create vertex shader");
         throw std::runtime_error("Failed to create vertex shader");
     }
+    LOG_DEBUG("Vertex shader created");
 
     hr = device->CreatePixelShader(
         psBytecode.data(),
@@ -33,8 +35,10 @@ Shader::Shader(ID3D11Device*                        device,
         &m_pixelShader
     );
     if (FAILED(hr)) {
+        LOG_ERROR("Failed to create pixel shader");
         throw std::runtime_error("Failed to create pixel shader");
     }
+    LOG_DEBUG("Pixel shader created");
 
     std::vector<D3D11_INPUT_ELEMENT_DESC> d3dLayout;
     d3dLayout.reserve(layout.size());

@@ -37,6 +37,29 @@ namespace engine::renderer {
         );
         if (FAILED(hr)) throw std::runtime_error("Failed to create D3D11 device");
 
+        {
+            const char* levelStr = "Unknown";
+            if (featureLevel == D3D_FEATURE_LEVEL_11_1) levelStr = "11.1";
+            else if (featureLevel == D3D_FEATURE_LEVEL_11_0) levelStr = "11.0";
+            LOG_INFO("D3D11 Device created. Feature Level: " + std::string(levelStr));
+
+            ComPtr<IDXGIDevice> dxgiDevice;
+            if (SUCCEEDED(m_device.As(&dxgiDevice))) {
+                ComPtr<IDXGIAdapter> adapter;
+                if (SUCCEEDED(dxgiDevice->GetAdapter(&adapter))) {
+                    DXGI_ADAPTER_DESC desc;
+                    adapter->GetDesc(&desc);
+                    
+                    char sDesc[128];
+                    size_t convertedChars = 0;
+                    wcstombs_s(&convertedChars, sDesc, sizeof(sDesc), desc.Description, _TRUNCATE);
+                    
+                    LOG_INFO("Adapter: " + std::string(sDesc));
+                    LOG_INFO("Video Memory: " + std::to_string(desc.DedicatedVideoMemory / (1024 * 1024)) + " MB");
+                }
+            }
+        }
+
         createRenderTargetView();
         createDepthStencilBuffer(m_width, m_height);
         rebuildRasterizerState();
