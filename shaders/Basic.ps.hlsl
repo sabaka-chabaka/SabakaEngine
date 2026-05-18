@@ -1,6 +1,6 @@
-Texture2D    diffuseMap : register(t0);
+Texture2D    diffuseMap  : register(t0);
 Texture2D    specularMap : register(t1);
-SamplerState sampler0   : register(s0);
+SamplerState sampler0    : register(s0);
 
 cbuffer MaterialBuffer : register(b1)
 {
@@ -20,15 +20,15 @@ struct PSInput
 
 float4 main(PSInput input) : SV_TARGET
 {
-    float2 finalUV  = input.uv * uvScale + uvOffset;
+    float2 finalUV      = input.uv * uvScale + uvOffset;
 
-    float4 diffuse  = diffuseMap.Sample(sampler0, finalUV);
-    float4 specular = specularMap.Sample(sampler0, finalUV);
+    float4 diffuse      = diffuseMap.Sample(sampler0, finalUV);
+    float4 specular     = specularMap.Sample(sampler0, finalUV);
 
     float3 baseColor    = diffuse.rgb * input.color;
     float3 specularGlow = specular.rgb * specularIntensity;
 
-    float3 result = saturate(baseColor + specularGlow);
+    float3 result       = saturate(baseColor + specularGlow);
 
     return float4(result, diffuse.a);
 }
