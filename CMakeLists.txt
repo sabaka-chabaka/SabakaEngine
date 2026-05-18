@@ -27,6 +27,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/SamplerState.cpp
         src/renderer/SamplerState.h
         src/renderer/Material.h
+        src/renderer/CubemapTexture.cpp
+        src/renderer/CubemapTexture.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
