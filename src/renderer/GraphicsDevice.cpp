@@ -219,26 +219,32 @@ namespace engine::renderer {
     void GraphicsDevice::setFillMode(FillMode mode) {
         m_fillMode = mode;
         rebuildRasterizerState();
+        m_context->RSSetState(m_rasterizerState.Get());
     }
 
     void GraphicsDevice::setCullMode(CullMode mode) {
         m_cullMode = mode;
         rebuildRasterizerState();
+        m_context->RSSetState(m_rasterizerState.Get());
     }
 
     void GraphicsDevice::setBlendMode(BlendMode mode) {
         m_blendMode = mode;
         rebuildBlendState();
+        float blendFactor[4] = {};
+        m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
     }
 
     void GraphicsDevice::setDepthWriteEnabled(bool enabled) {
         m_depthWrite = enabled;
         rebuildDepthStencilState();
+        m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
     }
 
     void GraphicsDevice::setDepthFunc(DepthFunc func) {
         m_depthFunc = func;
         rebuildDepthStencilState();
+        m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
     }
 
     ID3D11Device *GraphicsDevice::getDevice() const { return m_device.Get(); }

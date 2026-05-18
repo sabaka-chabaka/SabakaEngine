@@ -46,5 +46,6 @@ namespace engine::core {
         std::unique_ptr<renderer::Shader>                                   m_skyboxShader;
         std::unique_ptr<renderer::CubemapTexture>                           m_skyboxTexture;
         std::unique_ptr<renderer::ConstantBuffer<renderer::SkyboxData>>     m_skyboxCB;
+        std::unique_ptr<renderer::SamplerState>                             m_skyboxSampler;
     };
 }

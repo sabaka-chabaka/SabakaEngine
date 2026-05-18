@@ -32,7 +32,7 @@ namespace engine::renderer {
         sd.Filter         = toD3DFilter(desc.filter);
         sd.AddressU       = toD3DWrap(desc.wrapU);
         sd.AddressV       = toD3DWrap(desc.wrapV);
-        sd.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
+        sd.AddressW       = toD3DWrap(desc.wrapU);
         sd.MaxAnisotropy  = desc.maxAniso;
         sd.ComparisonFunc = D3D11_COMPARISON_NEVER;
         sd.MinLOD         = 0.0f;

@@ -139,6 +139,17 @@ namespace engine::core {
             skyboxFaces
         );
 
+        renderer::SamplerDesc skyboxSampDesc;
+        skyboxSampDesc.filter = renderer::FilterMode::Trilinear;
+        skyboxSampDesc.wrapU  = renderer::WrapMode::Clamp;
+        skyboxSampDesc.wrapV  = renderer::WrapMode::Clamp;
+
+        m_skyboxSampler = std::make_unique<renderer::SamplerState>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            skyboxSampDesc
+        );
+
         renderer::CameraDesc camDesc;
         camDesc.position = {0.0f, 1.5f, -4.0f};
         camDesc.target = {0.0f, 0.0f, 0.0f};
@@ -212,7 +223,6 @@ namespace engine::core {
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
 
-                // ── Pass 1: Skybox ──────────────────────────────
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(false);
                 m_graphics->setDepthFunc(renderer::DepthFunc::LessEqual);
@@ -227,11 +237,11 @@ namespace engine::core {
                     sd.projection = XMMatrixTranspose(projection);
 
                     m_skyboxCB->update(sd);
-                    m_skyboxCB->bindVS(0);
 
                     m_skyboxShader->bind(m_graphics->getDeviceContext());
+                    m_skyboxCB->bindVS(0);
                     m_skyboxTexture->bindPS(0);
-                    m_sampler->bindPS(0);
+                    m_skyboxSampler->bindPS(0);
                     m_skyboxMesh->draw();
                 }
 
