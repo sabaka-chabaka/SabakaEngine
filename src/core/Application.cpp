@@ -108,9 +108,7 @@ namespace engine::core {
             m_graphics->getDeviceContext()
         );
 
-        std::vector<renderer::InputElementDesc> skyboxLayout = {
-            {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
-        };
+        std::vector<renderer::InputElementDesc> skyboxLayout = {};
 
         m_skyboxShader = std::make_unique<renderer::Shader>(
             m_graphics->getDevice(),
@@ -223,32 +221,42 @@ namespace engine::core {
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
 
-                m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(false);
                 m_graphics->setDepthFunc(renderer::DepthFunc::LessEqual);
-                m_graphics->setCullMode(renderer::CullMode::Front);
+                m_graphics->setCullMode(renderer::CullMode::None);
+                m_graphics->setDepthClipEnabled(false);
 
                 {
                     XMMATRIX viewNoTranslation = view;
                     viewNoTranslation.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 
+                    XMMATRIX vp = XMMatrixMultiply(viewNoTranslation, projection);
+                    XMMATRIX invVP = XMMatrixInverse(nullptr, vp);
+
                     renderer::SkyboxData sd;
-                    sd.viewNoTranslation = XMMatrixTranspose(viewNoTranslation);
-                    sd.projection = XMMatrixTranspose(projection);
+                    sd.invViewProj = XMMatrixTranspose(invVP);
+                    sd.dummy = XMMatrixIdentity();
 
                     m_skyboxCB->update(sd);
 
                     m_skyboxShader->bind(m_graphics->getDeviceContext());
                     m_skyboxCB->bindVS(0);
+                    m_skyboxCB->bindPS(0);
                     m_skyboxTexture->bindPS(0);
                     m_skyboxSampler->bindPS(0);
-                    m_skyboxMesh->draw();
+
+                    auto* ctx = m_graphics->getDeviceContext();
+                    ctx->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+                    ctx->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+                    ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    ctx->Draw(3, 0);
                 }
 
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(true);
                 m_graphics->setDepthFunc(renderer::DepthFunc::Less);
                 m_graphics->setCullMode(renderer::CullMode::Back);
+                m_graphics->setDepthClipEnabled(true);
 
                 {
                     XMMATRIX model = XMMatrixRotationRollPitchYaw(

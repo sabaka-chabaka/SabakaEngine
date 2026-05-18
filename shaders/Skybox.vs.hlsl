@@ -1,30 +1,23 @@
 cbuffer SkyboxBuffer : register(b0)
 {
-    matrix viewNoTranslation;
-    matrix projection;
-};
-
-struct VSInput
-{
-    float3 position : POSITION;
+    matrix invViewProj;
+    matrix dummy;
 };
 
 struct VSOutput
 {
     float4 position  : SV_POSITION;
-    float3 direction : TEXCOORD0;
+    float2 uv        : TEXCOORD0;
 };
 
-VSOutput main(VSInput input)
+VSOutput main(uint vertexID : SV_VertexID)
 {
+    float2 ndcPos;
+    ndcPos.x = (float)(vertexID == 1 ? 3 : -1);
+    ndcPos.y = (float)(vertexID == 2 ? 3 : -1);
+
     VSOutput output;
-
-    float4 pos = float4(input.position, 1.0f);
-    pos        = mul(pos, viewNoTranslation);
-    pos        = mul(pos, projection);
-
-    output.position  = pos.xyww;
-    output.direction = input.position;
-
+    output.position = float4(ndcPos, 1.0f, 1.0f);
+    output.uv = ndcPos;
     return output;
 }

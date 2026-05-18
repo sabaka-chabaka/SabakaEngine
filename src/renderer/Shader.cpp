@@ -51,15 +51,17 @@ Shader::Shader(ID3D11Device*                        device,
         d3dLayout.push_back(d3dElem);
     }
 
-    hr = device->CreateInputLayout(
-        d3dLayout.data(),
-        static_cast<UINT>(d3dLayout.size()),
-        vsBytecode.data(),
-        vsBytecode.size(),
-        &m_inputLayout
-    );
-    if (FAILED(hr)) {
-        throw std::runtime_error("Failed to create input layout");
+    if (!d3dLayout.empty()) {
+        hr = device->CreateInputLayout(
+            d3dLayout.data(),
+            static_cast<UINT>(d3dLayout.size()),
+            vsBytecode.data(),
+            vsBytecode.size(),
+            &m_inputLayout
+        );
+        if (FAILED(hr)) {
+            throw std::runtime_error("Failed to create input layout");
+        }
     }
 
     LOG_INFO("Shader compiled and linked successfully");

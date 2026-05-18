@@ -3,8 +3,8 @@
 
 namespace engine::renderer {
     struct alignas(16) SkyboxData {
-        DirectX::XMMATRIX viewNoTranslation;
-        DirectX::XMMATRIX projection;
+        DirectX::XMMATRIX invViewProj;
+        DirectX::XMMATRIX dummy;
     };
 
     static_assert(sizeof(SkyboxData) % 16 == 0,

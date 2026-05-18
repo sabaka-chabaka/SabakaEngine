@@ -118,7 +118,7 @@ namespace engine::renderer {
                                     ? D3D11_CULL_FRONT
                                     : D3D11_CULL_BACK;
         rsDesc.FrontCounterClockwise = FALSE;
-        rsDesc.DepthClipEnable = TRUE;
+        rsDesc.DepthClipEnable = m_depthClip ? TRUE : FALSE;
 
         m_rasterizerState.Reset();
         if (FAILED(m_device->CreateRasterizerState(&rsDesc, &m_rasterizerState)))
@@ -245,6 +245,12 @@ namespace engine::renderer {
         m_depthFunc = func;
         rebuildDepthStencilState();
         m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
+    }
+
+    void GraphicsDevice::setDepthClipEnabled(bool enabled) {
+        m_depthClip = enabled;
+        rebuildRasterizerState();
+        m_context->RSSetState(m_rasterizerState.Get());
     }
 
     ID3D11Device *GraphicsDevice::getDevice() const { return m_device.Get(); }
