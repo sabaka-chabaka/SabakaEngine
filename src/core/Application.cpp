@@ -220,6 +220,13 @@ namespace engine::core {
         light.attQuadratic    = 0.20f;
         light.pointEnabled    = 1.0f;
 
+        light.spotLightPos   = { 0.0f, 4.0f, 0.0f, 1.0f };
+        light.spotLightDir   = { 0.0f, -1.0f, 0.0f, 0.0f };
+        light.spotLightColor = { 0.2f, 0.6f, 1.0f, 1.0f };
+        light.spotCosInner   = cosf(DirectX::XMConvertToRadians(10.0f));
+        light.spotCosOuter   = cosf(DirectX::XMConvertToRadians(22.0f));
+        light.spotEnabled    = 1.0f;
+
         try {
             while (m_window->processMessages()) {
                 auto now = Clock::now();
@@ -249,6 +256,10 @@ namespace engine::core {
                 if (input.isKeyPressed(Key::F3)) {
                     light.pointEnabled = (light.pointEnabled > 0.5f) ? 0.0f : 1.0f;
                     LOG_INFO(light.pointEnabled > 0.5f ? "Point light ON" : "Point light OFF");
+                }
+                if (input.isKeyPressed(Key::F4)) {
+                    light.spotEnabled = (light.spotEnabled > 0.5f) ? 0.0f : 1.0f;
+                    LOG_INFO(light.spotEnabled > 0.5f ? "Spot light ON" : "Spot light OFF");
                 }
 
                 onUpdate(deltaTime);

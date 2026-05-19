@@ -35,7 +35,7 @@
 [✓] 23. Specular Phong (reflect + dot)
 [✓] 24. Specular Blinn-Phong (half-vector, быстрее)
 [✓] 25. Point Light (затухание 1/d²)
-[ ] 26. Spot Light (конус, inner/outer angle)
+[✓] 26. Spot Light (конус, inner/outer angle)
 [ ] 27. Light Buffer (массив до 16 источников в один CB)
 [ ] 28. Normal Map (TBN матрица, tangent space)
 ```
