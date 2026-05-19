@@ -36,6 +36,15 @@ cbuffer LightBuffer : register(b2)
     float  attLinear;
     float  attQuadratic;
     float  pointEnabled;
+
+    float4 spotLightPos;
+    float4 spotLightDir;
+    float4 spotLightColor;
+
+    float  spotCosInner;
+    float  spotCosOuter;
+    float  spotEnabled;
+    float  _spotPad;
 };
 
 float4 main(PSInput input) : SV_TARGET
@@ -70,7 +79,27 @@ float4 main(PSInput input) : SV_TARGET
     float3 ptSpecular = specular.rgb * specularIntensity * ptSpec * att * pointLightColor.rgb;
     float3 ptContrib  = (ptDiffuse + ptSpecular) * pointEnabled;
 
-    float3 result = saturate(ambient + dirDiffuse + dirSpecular + ptContrib);
+    float3 spVec    = spotLightPos.xyz - input.worldPos;
+    float  spDist   = length(spVec);
+    float3 spL      = normalize(spVec);
+
+    float  theta    = dot(spL, normalize(-spotLightDir.xyz));
+
+    float  epsilon  = spotCosInner - spotCosOuter;
+    float  spotF    = saturate((theta - spotCosOuter) / epsilon);
+
+    float  spAtt    = 1.0 / (attConstant + attLinear * spDist + attQuadratic * spDist * spDist);
+    float  spTotal  = spAtt * spotF;
+
+    float  spDiff   = max(dot(normal, spL), 0.0);
+    float3 spHalf   = normalize(spL + viewDir);
+    float  spSpec   = pow(max(dot(normal, spHalf), 0.0), specularPower);
+
+    float3 spDiffuse  = spDiff * spTotal * spotLightColor.rgb * baseColor;
+    float3 spSpecular = specular.rgb * specularIntensity * spSpec * spTotal * spotLightColor.rgb;
+    float3 spContrib  = (spDiffuse + spSpecular) * spotEnabled;
+
+    float3 result = saturate(ambient + dirDiffuse + dirSpecular + ptContrib + spContrib);
 
     return float4(result, diffuse.a);
 }
