@@ -28,34 +28,49 @@ cbuffer LightBuffer : register(b2)
     float4 lightColor;
     float3 viewPos;
     float  _lightPad2;
+
+    float4 pointLightPos;
+    float4 pointLightColor;
+
+    float  attConstant;
+    float  attLinear;
+    float  attQuadratic;
+    float  pointEnabled;
 };
 
 float4 main(PSInput input) : SV_TARGET
 {
-    float2 finalUV      = input.uv * uvScale + uvOffset;
+    float2 finalUV   = input.uv * uvScale + uvOffset;
+    float4 diffuse   = diffuseMap.Sample(sampler0, finalUV);
+    float4 specular  = specularMap.Sample(sampler0, finalUV);
 
-    float4 diffuse      = diffuseMap.Sample(sampler0, finalUV);
-    float4 specular     = specularMap.Sample(sampler0, finalUV);
+    float3 baseColor = diffuse.rgb * input.color;
+    float3 normal    = normalize(input.worldNormal);
+    float3 viewDir   = normalize(viewPos - input.worldPos);
 
-    float3 baseColor    = diffuse.rgb * input.color;
-    float3 ambient      = baseColor * ambientColor.rgb;
-    float3 specularGlow = specular.rgb * specularIntensity;
+    float3 ambient   = baseColor * ambientColor.rgb;
 
-    float3 normal       = normalize(input.worldNormal);
-    float3 lightDir     = normalize(-lightDirection);
-    float  diff         = max(dot(normal, lightDir), 0.0);
-    float3 diffuseLight = diff * lightColor.rgb;
+    float3 dirLightDir   = normalize(-lightDirection);
+    float  dirDiff       = max(dot(normal, dirLightDir), 0.0);
+    float3 dirHalfway    = normalize(dirLightDir + viewDir);
+    float  dirSpec       = pow(max(dot(normal, dirHalfway), 0.0), specularPower);
+    float3 dirDiffuse    = dirDiff * lightColor.rgb * baseColor;
+    float3 dirSpecular   = specular.rgb * specularIntensity * dirSpec * lightColor.rgb;
 
-    float3 viewDir      = normalize(viewPos - input.worldPos);
-    float3 reflectDir   = reflect(-lightDir, normal);
-    float  specPhong    = pow(max(dot(viewDir, reflectDir), 0.0), specularPower);
+    float3 ptVec     = pointLightPos.xyz - input.worldPos;
+    float  ptDist    = length(ptVec);
+    float3 ptDir     = normalize(ptVec);
 
-    float3 halfwayDir   = normalize(lightDir + viewDir);
-    float  specBlinn    = pow(max(dot(normal, halfwayDir), 0.0), specularPower);
+    float  att       = 1.0 / (attConstant + attLinear * ptDist + attQuadratic * ptDist * ptDist);
+    float  ptDiff    = max(dot(normal, ptDir), 0.0);
+    float3 ptHalfway = normalize(ptDir + viewDir);
+    float  ptSpec    = pow(max(dot(normal, ptHalfway), 0.0), specularPower);
 
-    float3 specularFinal = specular.rgb * specularIntensity * specBlinn * lightColor.rgb;
+    float3 ptDiffuse  = ptDiff * att * pointLightColor.rgb * baseColor;
+    float3 ptSpecular = specular.rgb * specularIntensity * ptSpec * att * pointLightColor.rgb;
+    float3 ptContrib  = (ptDiffuse + ptSpecular) * pointEnabled;
 
-    float3 result       = saturate(ambient + (diffuseLight * baseColor) + specularFinal + specularGlow);
+    float3 result = saturate(ambient + dirDiffuse + dirSpecular + ptContrib);
 
     return float4(result, diffuse.a);
 }
