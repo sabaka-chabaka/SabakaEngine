@@ -3,6 +3,7 @@
 #include "platform/Input.h"
 #include <DirectXMath.h>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 
 using namespace DirectX;
@@ -208,9 +209,16 @@ namespace engine::core {
         material.uvOffset = {0.0f, 0.0f};
 
         renderer::LightData light;
-        light.ambientColor   = { 0.3f, 0.3f, 0.35f, 1.0f };
-        light.lightDirection = { 1.0f, -1.0f, 1.0f };
-        light.lightColor     = { 1.0f, 1.0f, 0.9f, 1.0f };
+        light.ambientColor    = { 0.3f, 0.3f, 0.35f, 1.0f };
+        light.lightDirection  = { 1.0f, -1.0f, 1.0f };
+        light.lightColor      = { 1.0f, 1.0f, 0.9f, 1.0f };
+
+        light.pointLightPos   = { 2.0f, 1.5f, 0.0f, 1.0f };
+        light.pointLightColor = { 1.0f, 0.45f, 0.1f, 1.0f };
+        light.attConstant     = 1.0f;
+        light.attLinear       = 0.22f;
+        light.attQuadratic    = 0.20f;
+        light.pointEnabled    = 1.0f;
 
         try {
             while (m_window->processMessages()) {
@@ -236,6 +244,11 @@ namespace engine::core {
                 if (input.isKeyPressed(Key::F2)) {
                     m_graphics->setFillMode(renderer::FillMode::Solid);
                     LOG_INFO("Wireframe OFF");
+                }
+
+                if (input.isKeyPressed(Key::F3)) {
+                    light.pointEnabled = (light.pointEnabled > 0.5f) ? 0.0f : 1.0f;
+                    LOG_INFO(light.pointEnabled > 0.5f ? "Point light ON" : "Point light OFF");
                 }
 
                 onUpdate(deltaTime);
@@ -304,6 +317,14 @@ namespace engine::core {
 
                     m_materialCB->update(material);
                     m_materialCB->bindPS(1);
+
+                    float ptOrbitRadius = 2.5f;
+                    light.pointLightPos = {
+                        ptOrbitRadius * cosf(totalTime),
+                        1.5f,
+                        ptOrbitRadius * sinf(totalTime),
+                        1.0f
+                    };
 
                     light.viewPos = m_camera->getPosition();
                     m_lightCB->update(light);
