@@ -19,6 +19,13 @@ namespace engine::renderer{
               const std::string&   path,
               const TextureDesc&   desc = {});
 
+        Texture2D(ID3D11Device*               device,
+                  ID3D11DeviceContext*        context,
+                  int                         width,
+                  int                         height,
+                  const unsigned char*        rgba,
+                  const TextureDesc&          desc = {});
+
         ~Texture2D() = default;
 
         Texture2D(const Texture2D&)            = delete;
