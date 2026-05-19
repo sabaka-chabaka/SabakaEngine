@@ -314,7 +314,7 @@ namespace engine::core {
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
                 m_graphics->setDepthWriteEnabled(true);
                 m_graphics->setDepthFunc(renderer::DepthFunc::Less);
-                m_graphics->setCullMode(renderer::CullMode::Back);
+                m_graphics->setCullMode(renderer::CullMode::None);
                 m_graphics->setDepthClipEnabled(true);
 
                 {
