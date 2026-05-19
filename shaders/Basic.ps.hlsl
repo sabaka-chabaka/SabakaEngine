@@ -8,7 +8,7 @@ cbuffer MaterialBuffer : register(b1)
     float  specularPower;
     float2 uvScale;
     float2 uvOffset;
-    float2 _pad;
+    float2 _matPad;
 };
 
 struct PSInput
@@ -20,32 +20,94 @@ struct PSInput
     float3 worldPos    : TEXCOORD2;
 };
 
+#define LIGHT_DIRECTIONAL 0
+#define LIGHT_POINT       1
+#define LIGHT_SPOT        2
+#define MAX_LIGHTS        16
+
+struct GpuLight
+{
+    float4 positionAndType;
+    float4 directionAndRange;
+    float4 color;
+    float4 params;
+    float4 spotAngles;
+};
+
 cbuffer LightBuffer : register(b2)
 {
-    float4 ambientColor;
-    float3 lightDirection;
-    float  _lightPad;
-    float4 lightColor;
-    float3 viewPos;
-    float  _lightPad2;
-
-    float4 pointLightPos;
-    float4 pointLightColor;
-
-    float  attConstant;
-    float  attLinear;
-    float  attQuadratic;
-    float  pointEnabled;
-
-    float4 spotLightPos;
-    float4 spotLightDir;
-    float4 spotLightColor;
-
-    float  spotCosInner;
-    float  spotCosOuter;
-    float  spotEnabled;
-    float  _spotPad;
+    float4   ambientColor;
+    float3   viewPos;
+    int      numLights;
+    GpuLight lights[MAX_LIGHTS];
 };
+
+float calcAttenuation(GpuLight light, float dist)
+{
+    float range = light.directionAndRange.w;
+    if (range > 0.0 && dist > range) return 0.0;
+    float c = light.params.x;
+    float l = light.params.y;
+    float q = light.params.z;
+    return 1.0 / (c + l * dist + q * dist * dist);
+}
+
+float3 calcBlinnPhong(
+    float3 L,
+    float3 N,
+    float3 V,
+    float3 baseColor,
+    float3 specTex,
+    float3 lightColor,
+    float  intensity)
+{
+    float  diff    = max(dot(N, L), 0.0);
+    float3 halfway = normalize(L + V);
+    float  spec    = pow(max(dot(N, halfway), 0.0), specularPower);
+
+    float3 diffuse  = diff * lightColor * baseColor * intensity;
+    float3 specular = specTex * specularIntensity * spec * lightColor * intensity;
+    return diffuse + specular;
+}
+
+float3 calcDirectional(GpuLight light, float3 N, float3 V,
+                       float3 baseColor, float3 specTex)
+{
+    float3 L = normalize(-light.directionAndRange.xyz);
+    return calcBlinnPhong(L, N, V, baseColor, specTex,
+                          light.color.rgb, light.color.a);
+}
+
+float3 calcPoint(GpuLight light, float3 worldPos,
+                 float3 N, float3 V,
+                 float3 baseColor, float3 specTex)
+{
+    float3 vec  = light.positionAndType.xyz - worldPos;
+    float  dist = length(vec);
+    float3 L    = normalize(vec);
+    float  att  = calcAttenuation(light, dist);
+    return calcBlinnPhong(L, N, V, baseColor, specTex,
+                          light.color.rgb, light.color.a) * att;
+}
+
+float3 calcSpot(GpuLight light, float3 worldPos,
+                float3 N, float3 V,
+                float3 baseColor, float3 specTex)
+{
+    float3 vec      = light.positionAndType.xyz - worldPos;
+    float  dist     = length(vec);
+    float3 L        = normalize(vec);
+
+    float  theta    = dot(L, normalize(-light.directionAndRange.xyz));
+    float  cosInner = light.spotAngles.x;
+    float  cosOuter = light.spotAngles.y;
+    float  epsilon  = cosInner - cosOuter;
+    float  spotF    = saturate((theta - cosOuter) / epsilon);
+
+    float  att      = calcAttenuation(light, dist) * spotF;
+    return calcBlinnPhong(L, N, V, baseColor, specTex,
+                          light.color.rgb, light.color.a) * att;
+}
 
 float4 main(PSInput input) : SV_TARGET
 {
@@ -54,52 +116,24 @@ float4 main(PSInput input) : SV_TARGET
     float4 specular  = specularMap.Sample(sampler0, finalUV);
 
     float3 baseColor = diffuse.rgb * input.color;
-    float3 normal    = normalize(input.worldNormal);
-    float3 viewDir   = normalize(viewPos - input.worldPos);
+    float3 N         = normalize(input.worldNormal);
+    float3 V         = normalize(viewPos - input.worldPos);
 
-    float3 ambient   = baseColor * ambientColor.rgb;
+    float3 result    = baseColor * ambientColor.rgb;
 
-    float3 dirLightDir   = normalize(-lightDirection);
-    float  dirDiff       = max(dot(normal, dirLightDir), 0.0);
-    float3 dirHalfway    = normalize(dirLightDir + viewDir);
-    float  dirSpec       = pow(max(dot(normal, dirHalfway), 0.0), specularPower);
-    float3 dirDiffuse    = dirDiff * lightColor.rgb * baseColor;
-    float3 dirSpecular   = specular.rgb * specularIntensity * dirSpec * lightColor.rgb;
+    for (int i = 0; i < numLights; ++i)
+    {
+        if (lights[i].params.w < 0.5) continue;
 
-    float3 ptVec     = pointLightPos.xyz - input.worldPos;
-    float  ptDist    = length(ptVec);
-    float3 ptDir     = normalize(ptVec);
+        int type = (int)lights[i].positionAndType.w;
 
-    float  att       = 1.0 / (attConstant + attLinear * ptDist + attQuadratic * ptDist * ptDist);
-    float  ptDiff    = max(dot(normal, ptDir), 0.0);
-    float3 ptHalfway = normalize(ptDir + viewDir);
-    float  ptSpec    = pow(max(dot(normal, ptHalfway), 0.0), specularPower);
+        if (type == LIGHT_DIRECTIONAL)
+            result += calcDirectional(lights[i], N, V, baseColor, specular.rgb);
+        else if (type == LIGHT_POINT)
+            result += calcPoint(lights[i], input.worldPos, N, V, baseColor, specular.rgb);
+        else if (type == LIGHT_SPOT)
+            result += calcSpot(lights[i], input.worldPos, N, V, baseColor, specular.rgb);
+    }
 
-    float3 ptDiffuse  = ptDiff * att * pointLightColor.rgb * baseColor;
-    float3 ptSpecular = specular.rgb * specularIntensity * ptSpec * att * pointLightColor.rgb;
-    float3 ptContrib  = (ptDiffuse + ptSpecular) * pointEnabled;
-
-    float3 spVec    = spotLightPos.xyz - input.worldPos;
-    float  spDist   = length(spVec);
-    float3 spL      = normalize(spVec);
-
-    float  theta    = dot(spL, normalize(-spotLightDir.xyz));
-
-    float  epsilon  = spotCosInner - spotCosOuter;
-    float  spotF    = saturate((theta - spotCosOuter) / epsilon);
-
-    float  spAtt    = 1.0 / (attConstant + attLinear * spDist + attQuadratic * spDist * spDist);
-    float  spTotal  = spAtt * spotF;
-
-    float  spDiff   = max(dot(normal, spL), 0.0);
-    float3 spHalf   = normalize(spL + viewDir);
-    float  spSpec   = pow(max(dot(normal, spHalf), 0.0), specularPower);
-
-    float3 spDiffuse  = spDiff * spTotal * spotLightColor.rgb * baseColor;
-    float3 spSpecular = specular.rgb * specularIntensity * spSpec * spTotal * spotLightColor.rgb;
-    float3 spContrib  = (spDiffuse + spSpecular) * spotEnabled;
-
-    float3 result = saturate(ambient + dirDiffuse + dirSpecular + ptContrib + spContrib);
-
-    return float4(result, diffuse.a);
+    return float4(saturate(result), diffuse.a);
 }
