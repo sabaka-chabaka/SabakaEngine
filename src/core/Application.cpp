@@ -60,6 +60,7 @@ namespace engine::core {
             {"COLOR",    DXGI_FORMAT_R32G32B32_FLOAT, 12},
             {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT,    24},
             {"NORMAL",   DXGI_FORMAT_R32G32B32_FLOAT, 32},
+            {"TANGENT",  DXGI_FORMAT_R32G32B32_FLOAT, 44},
         };
 
         LOG_DEBUG("Compiling main shader...");
@@ -103,6 +104,14 @@ namespace engine::core {
             m_graphics->getDevice(),
             m_graphics->getDeviceContext(),
             exeDir + "/textures/cube_specular.png",
+            texDesc
+        );
+
+        LOG_DEBUG("Loading normal map...");
+        m_normalMap = std::make_unique<renderer::Texture2D>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            exeDir + "/textures/cube_normal.png",
             texDesc
         );
 
@@ -207,6 +216,7 @@ namespace engine::core {
         material.specularPower = 32.0f;
         material.uvScale = {1.0f, 1.0f};
         material.uvOffset = {0.0f, 0.0f};
+        material.useNormalMap      = 1.0f;
 
         renderer::LightBuffer lightBuf;
         lightBuf.ambientColor = { 0.3f, 0.3f, 0.35f, 1.0f };
@@ -271,6 +281,10 @@ namespace engine::core {
                     float& en = lightBuf.lights[2].params.w;
                     en = (en > 0.5f) ? 0.0f : 1.0f;
                     LOG_INFO(en > 0.5f ? "Spot light ON" : "Spot light OFF");
+                }
+                if (input.isKeyPressed(Key::F5)) {
+                    material.useNormalMap = (material.useNormalMap > 0.5f) ? 0.0f : 1.0f;
+                    LOG_INFO(material.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF (vertex normals)");
                 }
 
                 onUpdate(deltaTime);
@@ -356,6 +370,7 @@ namespace engine::core {
 
                     m_diffuseTexture->bindPS(0);
                     m_specularTexture->bindPS(1);
+                    m_normalMap->bindPS(2);
                     m_sampler->bindPS(0);
                     m_mesh->draw();
                 }

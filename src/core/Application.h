@@ -42,6 +42,7 @@ namespace engine::core {
         std::unique_ptr<renderer::ConstantBuffer<renderer::LightBuffer>>    m_lightCB;
         std::unique_ptr<renderer::Texture2D>                                m_diffuseTexture;
         std::unique_ptr<renderer::Texture2D>                                m_specularTexture;
+        std::unique_ptr<renderer::Texture2D>                                m_normalMap;
         std::unique_ptr<renderer::SamplerState>                             m_sampler;
 
         std::unique_ptr<renderer::SkyboxMesh>                               m_skyboxMesh;
