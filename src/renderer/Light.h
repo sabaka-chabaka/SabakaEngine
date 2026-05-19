@@ -18,6 +18,15 @@ namespace engine::renderer {
         float attLinear    = 0.22f;
         float attQuadratic = 0.20f;
         float pointEnabled = 1.0f;
+
+        DirectX::XMFLOAT4 spotLightPos   = {  0.0f, 4.0f,  0.0f, 1.0f };
+        DirectX::XMFLOAT4 spotLightDir   = {  0.0f, -1.0f, 0.0f, 0.0f };
+        DirectX::XMFLOAT4 spotLightColor = {  0.2f, 0.6f,  1.0f, 1.0f };
+
+        float spotCosInner = 0.9848f;
+        float spotCosOuter = 0.9397f;
+        float spotEnabled  = 1.0f;
+        float _spotPad     = 0.0f;
     };
 
     static_assert(sizeof(LightData) % 16 == 0, "LightData must be 16-byte aligned");
