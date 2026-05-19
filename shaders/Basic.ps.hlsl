@@ -1,6 +1,7 @@
-Texture2D    diffuseMap  : register(t0);
-Texture2D    specularMap : register(t1);
-SamplerState sampler0    : register(s0);
+Texture2D    diffuseMap   : register(t0);
+Texture2D    specularMap  : register(t1);
+Texture2D    normalMap    : register(t2);
+SamplerState sampler0     : register(s0);
 
 cbuffer MaterialBuffer : register(b1)
 {
@@ -8,16 +9,19 @@ cbuffer MaterialBuffer : register(b1)
     float  specularPower;
     float2 uvScale;
     float2 uvOffset;
-    float2 _matPad;
+    float  useNormalMap;
+    float  _matPad;
 };
 
 struct PSInput
 {
-    float4 position    : SV_POSITION;
-    float3 color       : COLOR;
-    float2 uv          : TEXCOORD0;
-    float3 worldNormal : TEXCOORD1;
-    float3 worldPos    : TEXCOORD2;
+    float4 position : SV_POSITION;
+    float3 color    : COLOR;
+    float2 uv       : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;
+    float3 T        : TEXCOORD2;
+    float3 B        : TEXCOORD3;
+    float3 N        : TEXCOORD4;
 };
 
 #define LIGHT_DIRECTIONAL 0
@@ -53,19 +57,14 @@ float calcAttenuation(GpuLight light, float dist)
 }
 
 float3 calcBlinnPhong(
-    float3 L,
-    float3 N,
-    float3 V,
-    float3 baseColor,
-    float3 specTex,
-    float3 lightColor,
-    float  intensity)
+    float3 L, float3 N, float3 V,
+    float3 baseColor, float3 specTex,
+    float3 lightColor, float intensity)
 {
     float  diff    = max(dot(N, L), 0.0);
     float3 halfway = normalize(L + V);
     float  spec    = pow(max(dot(N, halfway), 0.0), specularPower);
-
-    float3 diffuse  = diff * lightColor * baseColor * intensity;
+    float3 diffuse  = diff  * lightColor * baseColor  * intensity;
     float3 specular = specTex * specularIntensity * spec * lightColor * intensity;
     return diffuse + specular;
 }
@@ -97,13 +96,11 @@ float3 calcSpot(GpuLight light, float3 worldPos,
     float3 vec      = light.positionAndType.xyz - worldPos;
     float  dist     = length(vec);
     float3 L        = normalize(vec);
-
     float  theta    = dot(L, normalize(-light.directionAndRange.xyz));
     float  cosInner = light.spotAngles.x;
     float  cosOuter = light.spotAngles.y;
     float  epsilon  = cosInner - cosOuter;
     float  spotF    = saturate((theta - cosOuter) / epsilon);
-
     float  att      = calcAttenuation(light, dist) * spotF;
     return calcBlinnPhong(L, N, V, baseColor, specTex,
                           light.color.rgb, light.color.a) * att;
@@ -111,15 +108,31 @@ float3 calcSpot(GpuLight light, float3 worldPos,
 
 float4 main(PSInput input) : SV_TARGET
 {
-    float2 finalUV   = input.uv * uvScale + uvOffset;
-    float4 diffuse   = diffuseMap.Sample(sampler0, finalUV);
-    float4 specular  = specularMap.Sample(sampler0, finalUV);
+    float2 finalUV  = input.uv * uvScale + uvOffset;
+    float4 diffuse  = diffuseMap.Sample(sampler0, finalUV);
+    float4 specular = specularMap.Sample(sampler0, finalUV);
 
     float3 baseColor = diffuse.rgb * input.color;
-    float3 N         = normalize(input.worldNormal);
     float3 V         = normalize(viewPos - input.worldPos);
 
-    float3 result    = baseColor * ambientColor.rgb;
+    float3 N;
+    if (useNormalMap > 0.5)
+    {
+        float3 nTangent = normalMap.Sample(sampler0, finalUV).rgb * 2.0 - 1.0;
+
+        float3x3 TBN = float3x3(
+            normalize(input.T),
+            normalize(input.B),
+            normalize(input.N)
+        );
+        N = normalize(mul(nTangent, TBN));
+    }
+    else
+    {
+        N = normalize(input.N);
+    }
+
+    float3 result = baseColor * ambientColor.rgb;
 
     for (int i = 0; i < numLights; ++i)
     {
