@@ -81,7 +81,7 @@ namespace engine::core {
             m_graphics->getDeviceContext()
         );
 
-        m_lightCB = std::make_unique<renderer::ConstantBuffer<renderer::LightData>>(
+        m_lightCB = std::make_unique<renderer::ConstantBuffer<renderer::LightBuffer>>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
@@ -208,24 +208,33 @@ namespace engine::core {
         material.uvScale = {1.0f, 1.0f};
         material.uvOffset = {0.0f, 0.0f};
 
-        renderer::LightData light;
-        light.ambientColor    = { 0.3f, 0.3f, 0.35f, 1.0f };
-        light.lightDirection  = { 1.0f, -1.0f, 1.0f };
-        light.lightColor      = { 1.0f, 1.0f, 0.9f, 1.0f };
+        renderer::LightBuffer lightBuf;
+        lightBuf.ambientColor = { 0.3f, 0.3f, 0.35f, 1.0f };
 
-        light.pointLightPos   = { 2.0f, 1.5f, 0.0f, 1.0f };
-        light.pointLightColor = { 1.0f, 0.45f, 0.1f, 1.0f };
-        light.attConstant     = 1.0f;
-        light.attLinear       = 0.22f;
-        light.attQuadratic    = 0.20f;
-        light.pointEnabled    = 1.0f;
+        lightBuf.lights[0] = renderer::makeDirectionalLight(
+            { 1.0f, -1.0f, 1.0f },
+            { 1.0f, 1.0f, 0.9f },
+            0.8f
+        );
 
-        light.spotLightPos   = { 0.0f, 4.0f, 0.0f, 1.0f };
-        light.spotLightDir   = { 0.0f, -1.0f, 0.0f, 0.0f };
-        light.spotLightColor = { 0.2f, 0.6f, 1.0f, 1.0f };
-        light.spotCosInner   = cosf(DirectX::XMConvertToRadians(10.0f));
-        light.spotCosOuter   = cosf(DirectX::XMConvertToRadians(22.0f));
-        light.spotEnabled    = 1.0f;
+        lightBuf.lights[1] = renderer::makePointLight(
+            { 2.0f, 1.5f, 0.0f },
+            { 1.0f, 0.45f, 0.1f },
+            1.5f,
+            8.0f
+        );
+
+        lightBuf.lights[2] = renderer::makeSpotLight(
+            {  0.0f,  4.0f, 0.0f },
+            {  0.0f, -1.0f, 0.0f },
+            {  0.2f,  0.6f, 1.0f },
+            10.0f,
+            22.0f,
+            2.0f,
+            12.0f
+        );
+
+        lightBuf.numLights = 3;
 
         try {
             while (m_window->processMessages()) {
@@ -254,12 +263,14 @@ namespace engine::core {
                 }
 
                 if (input.isKeyPressed(Key::F3)) {
-                    light.pointEnabled = (light.pointEnabled > 0.5f) ? 0.0f : 1.0f;
-                    LOG_INFO(light.pointEnabled > 0.5f ? "Point light ON" : "Point light OFF");
+                    float& en = lightBuf.lights[1].params.w;
+                    en = (en > 0.5f) ? 0.0f : 1.0f;
+                    LOG_INFO(en > 0.5f ? "Point light ON" : "Point light OFF");
                 }
                 if (input.isKeyPressed(Key::F4)) {
-                    light.spotEnabled = (light.spotEnabled > 0.5f) ? 0.0f : 1.0f;
-                    LOG_INFO(light.spotEnabled > 0.5f ? "Spot light ON" : "Spot light OFF");
+                    float& en = lightBuf.lights[2].params.w;
+                    en = (en > 0.5f) ? 0.0f : 1.0f;
+                    LOG_INFO(en > 0.5f ? "Spot light ON" : "Spot light OFF");
                 }
 
                 onUpdate(deltaTime);
@@ -329,16 +340,16 @@ namespace engine::core {
                     m_materialCB->update(material);
                     m_materialCB->bindPS(1);
 
-                    float ptOrbitRadius = 2.5f;
-                    light.pointLightPos = {
+                    const float ptOrbitRadius = 2.5f;
+                    lightBuf.lights[1].positionAndType = {
                         ptOrbitRadius * cosf(totalTime),
                         1.5f,
                         ptOrbitRadius * sinf(totalTime),
-                        1.0f
+                        static_cast<float>(renderer::LightType::Point)
                     };
 
-                    light.viewPos = m_camera->getPosition();
-                    m_lightCB->update(light);
+                    lightBuf.viewPos = m_camera->getPosition();
+                    m_lightCB->update(lightBuf);
                     m_lightCB->bindPS(2);
 
                     m_shader->bind(m_graphics->getDeviceContext());
