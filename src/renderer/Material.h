@@ -7,7 +7,8 @@ namespace engine::renderer {
         float specularPower     = 32.0f;
         DirectX::XMFLOAT2 uvScale  = { 1.0f, 1.0f };
         DirectX::XMFLOAT2 uvOffset = { 0.0f, 0.0f };
-        DirectX::XMFLOAT2 _pad     = { 0.0f, 0.0f };
+        float useNormalMap         = 1.0f;
+        float _pad                 = 0.0f;
     };
 
     static_assert(sizeof(MaterialData) % 16 == 0,
