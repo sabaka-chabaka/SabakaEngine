@@ -5,8 +5,8 @@ namespace engine::core {
     public:
         virtual ~Component() = default;
 
-        virtual void onUpdate(float deltaTime);
-        virtual void onRender();
+        virtual void onUpdate(float deltaTime) {}
+        virtual void onRender() {}
 
         class Entity* owner = nullptr;
     };
