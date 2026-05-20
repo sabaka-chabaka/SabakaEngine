@@ -35,6 +35,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/Light.h
         src/core/Transform.cpp
         src/core/Transform.h
+        src/core/Component.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
