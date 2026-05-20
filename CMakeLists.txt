@@ -36,6 +36,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/core/Transform.cpp
         src/core/Transform.h
         src/core/Component.h
+        src/core/Entity.cpp
+        src/core/Entity.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
