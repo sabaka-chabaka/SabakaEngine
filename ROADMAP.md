@@ -45,7 +45,7 @@
 [✓] 29. Transform компонент (pos + rot + scale → Matrix)
 [✓] 30. Entity (уникальный ID + список компонентов)
 [✓] 31. Component базовый класс (onUpdate, onRender)
-[ ] 32. Scene (реестр Entity, update + render loop)
+[✓] 32. Scene (реестр Entity, update + render loop)
 [ ] 33. SceneHierarchy (parent-child трансформации)
 [ ] 34. MeshRenderer компонент
 [ ] 35. Material система (шейдер + параметры + текстуры)
