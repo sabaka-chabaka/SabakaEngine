@@ -1,10 +1,12 @@
 #pragma once
 #include <DirectXMath.h>
 
+#include "Component.h"
+
 namespace engine::core {
     using namespace DirectX;
 
-    class Transform {
+    class Transform : public Component {
     public:
         Transform();
 

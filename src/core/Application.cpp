@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include "core/Entity.h"
 
 using namespace DirectX;
 using namespace engine::platform;
@@ -38,10 +39,10 @@ namespace engine::core {
         InputSystem::get().initialize(m_window->getNativeHandle());
 
         renderer::GraphicsDeviceDesc gDesc;
-        gDesc.hwnd = m_window->getNativeHandle();
-        gDesc.width = m_window->getWidth();
+        gDesc.hwnd   = m_window->getNativeHandle();
+        gDesc.width  = m_window->getWidth();
         gDesc.height = m_window->getHeight();
-        gDesc.vsync = true;
+        gDesc.vsync  = true;
 
         LOG_DEBUG("Initializing GraphicsDevice...");
         m_graphics = std::make_unique<renderer::GraphicsDevice>(gDesc);
@@ -72,12 +73,12 @@ namespace engine::core {
         );
 
         LOG_DEBUG("Creating constant buffers...");
-        m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData> >(
+        m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData>>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
 
-        m_materialCB = std::make_unique<renderer::ConstantBuffer<renderer::MaterialData> >(
+        m_materialCB = std::make_unique<renderer::ConstantBuffer<renderer::MaterialData>>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
@@ -117,8 +118,8 @@ namespace engine::core {
 
         renderer::SamplerDesc sampDesc;
         sampDesc.filter = renderer::FilterMode::Trilinear;
-        sampDesc.wrapU = renderer::WrapMode::Repeat;
-        sampDesc.wrapV = renderer::WrapMode::Repeat;
+        sampDesc.wrapU  = renderer::WrapMode::Repeat;
+        sampDesc.wrapV  = renderer::WrapMode::Repeat;
 
         LOG_DEBUG("Creating main sampler...");
         m_sampler = std::make_unique<renderer::SamplerState>(
@@ -144,7 +145,7 @@ namespace engine::core {
             skyboxLayout
         );
 
-        m_skyboxCB = std::make_unique<renderer::ConstantBuffer<renderer::SkyboxData> >(
+        m_skyboxCB = std::make_unique<renderer::ConstantBuffer<renderer::SkyboxData>>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
@@ -178,12 +179,12 @@ namespace engine::core {
         );
 
         renderer::CameraDesc camDesc;
-        camDesc.position = {0.0f, 1.5f, -4.0f};
-        camDesc.target = {0.0f, 0.0f, 0.0f};
-        camDesc.up = {0.0f, 1.0f, 0.0f};
-        camDesc.fovY = XM_PIDIV4;
-        camDesc.nearZ = 0.1f;
-        camDesc.farZ = 1000.0f;
+        camDesc.position = { 0.0f, 1.5f, -4.0f };
+        camDesc.target   = { 0.0f, 0.0f,  0.0f };
+        camDesc.up       = { 0.0f, 1.0f,  0.0f };
+        camDesc.fovY     = XM_PIDIV4;
+        camDesc.nearZ    = 0.1f;
+        camDesc.farZ     = 1000.0f;
 
         m_camera = std::make_unique<renderer::Camera>(camDesc);
         m_camera->setAspectRatio(
@@ -199,23 +200,28 @@ namespace engine::core {
             }
         });
 
+        LOG_DEBUG("Creating scene...");
+        m_scene = std::make_unique<Scene>();
+
+        m_cubeEntity = m_scene->createEntity("Cube");
+        m_cubeEntity->addComponent<Transform>();
+
         LOG_INFO("Scene resources ready");
     }
 
     int Application::run() {
-        using Clock = std::chrono::high_resolution_clock;
+        using Clock    = std::chrono::high_resolution_clock;
         using Duration = std::chrono::duration<float>;
 
         LOG_INFO("Entering main loop");
 
         auto lastTime = Clock::now();
-        float totalTime = 0.0f;
 
         renderer::MaterialData material;
         material.specularIntensity = 0.6f;
-        material.specularPower = 32.0f;
-        material.uvScale = {1.0f, 1.0f};
-        material.uvOffset = {0.0f, 0.0f};
+        material.specularPower     = 32.0f;
+        material.uvScale           = { 1.0f, 1.0f };
+        material.uvOffset          = { 0.0f, 0.0f };
         material.useNormalMap      = 1.0f;
 
         renderer::LightBuffer lightBuf;
@@ -223,7 +229,7 @@ namespace engine::core {
 
         lightBuf.lights[0] = renderer::makeDirectionalLight(
             { 1.0f, -1.0f, 1.0f },
-            { 1.0f, 1.0f, 0.9f },
+            { 1.0f,  1.0f, 0.9f },
             0.8f
         );
 
@@ -246,14 +252,15 @@ namespace engine::core {
 
         lightBuf.numLights = 3;
 
+        float orbitAngle = 0.0f;
+
         try {
             while (m_window->processMessages()) {
-                auto now = Clock::now();
+                auto  now       = Clock::now();
                 float deltaTime = Duration(now - lastTime).count();
-                lastTime = now;
-                totalTime += deltaTime;
+                lastTime        = now;
 
-                auto &input = InputSystem::get();
+                auto& input = InputSystem::get();
 
                 if (input.isKeyPressed(Key::Escape)) {
                     if (input.isMouseCaptured()) {
@@ -271,7 +278,6 @@ namespace engine::core {
                     m_graphics->setFillMode(renderer::FillMode::Solid);
                     LOG_INFO("Wireframe OFF");
                 }
-
                 if (input.isKeyPressed(Key::F3)) {
                     float& en = lightBuf.lights[1].params.w;
                     en = (en > 0.5f) ? 0.0f : 1.0f;
@@ -287,9 +293,19 @@ namespace engine::core {
                     LOG_INFO(material.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF (vertex normals)");
                 }
 
+                Transform* transform = m_cubeEntity->getComponent<Transform>();
+                transform->rotateEuler(
+                    deltaTime * 0.4f,
+                    deltaTime * 0.8f,
+                    deltaTime * 0.2f
+                );
+
+                m_scene->update(deltaTime);
                 onUpdate(deltaTime);
 
-                XMMATRIX view = m_camera->getViewMatrix();
+                orbitAngle += deltaTime;
+
+                XMMATRIX view       = m_camera->getViewMatrix();
                 XMMATRIX projection = m_camera->getProjectionMatrix();
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
@@ -300,15 +316,15 @@ namespace engine::core {
                 m_graphics->setDepthClipEnabled(false);
 
                 {
-                    XMMATRIX viewNoTranslation = view;
-                    viewNoTranslation.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+                    XMMATRIX viewNoTranslation  = view;
+                    viewNoTranslation.r[3]       = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 
-                    XMMATRIX vp = XMMatrixMultiply(viewNoTranslation, projection);
+                    XMMATRIX vp    = XMMatrixMultiply(viewNoTranslation, projection);
                     XMMATRIX invVP = XMMatrixInverse(nullptr, vp);
 
                     renderer::SkyboxData sd;
                     sd.invViewProj = XMMatrixTranspose(invVP);
-                    sd.dummy = XMMatrixIdentity();
+                    sd.dummy       = XMMatrixIdentity();
 
                     m_skyboxCB->update(sd);
 
@@ -332,15 +348,8 @@ namespace engine::core {
                 m_graphics->setDepthClipEnabled(true);
 
                 {
-                    XMMATRIX model = XMMatrixRotationRollPitchYaw(
-                        totalTime * 0.4f,
-                        totalTime * 0.8f,
-                        totalTime * 0.2f
-                    );
-
-                    XMMATRIX normalMatrix = XMMatrixTranspose(
-                        XMMatrixInverse(nullptr, model)
-                    );
+                    XMMATRIX model        = transform->getWorldMatrix();
+                    XMMATRIX normalMatrix = transform->getNormalMatrix();
 
                     renderer::TransformData td;
                     td.model        = XMMatrixTranspose(model);
@@ -356,9 +365,9 @@ namespace engine::core {
 
                     const float ptOrbitRadius = 2.5f;
                     lightBuf.lights[1].positionAndType = {
-                        ptOrbitRadius * cosf(totalTime),
+                        ptOrbitRadius * cosf(orbitAngle),
                         1.5f,
-                        ptOrbitRadius * sinf(totalTime),
+                        ptOrbitRadius * sinf(orbitAngle),
                         static_cast<float>(renderer::LightType::Point)
                     };
 
@@ -375,12 +384,13 @@ namespace engine::core {
                     m_mesh->draw();
                 }
 
+                m_scene->render();
                 onRender();
                 m_graphics->endFrame();
 
                 input.endFrame();
             }
-        } catch (const std::exception &e) {
+        } catch (const std::exception& e) {
             LOG_FATAL(std::string("Exception in main loop: ") + e.what());
             MessageBoxA(nullptr, e.what(), "Runtime Error", MB_OK | MB_ICONERROR);
             return -1;

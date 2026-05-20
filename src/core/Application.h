@@ -10,12 +10,12 @@
 #include "renderer/SamplerState.h"
 #include "renderer/Material.h"
 #include "renderer/Light.h"
-#include <memory>
-
 #include "renderer/CubemapTexture.h"
 #include "renderer/SkyboxBuffer.h"
 #include "renderer/SkyboxMesh.h"
-
+#include "core/Scene.h"
+#include "core/Transform.h"
+#include <memory>
 
 namespace engine::core {
     class Application {
@@ -50,5 +50,8 @@ namespace engine::core {
         std::unique_ptr<renderer::CubemapTexture>                           m_skyboxTexture;
         std::unique_ptr<renderer::ConstantBuffer<renderer::SkyboxData>>     m_skyboxCB;
         std::unique_ptr<renderer::SamplerState>                             m_skyboxSampler;
+
+        std::unique_ptr<Scene>                                              m_scene;
+        Entity*                                                             m_cubeEntity = nullptr;
     };
 }
