@@ -15,6 +15,7 @@
 #include "renderer/SkyboxMesh.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
+#include "core/SceneHierarchy.h"
 #include <memory>
 
 namespace engine::core {
@@ -52,6 +53,7 @@ namespace engine::core {
         std::unique_ptr<renderer::SamplerState>                             m_skyboxSampler;
 
         std::unique_ptr<Scene>                                              m_scene;
+        std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
         Entity*                                                             m_cubeEntity = nullptr;
     };
 }

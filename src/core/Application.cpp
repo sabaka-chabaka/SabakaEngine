@@ -5,7 +5,6 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
-#include "core/Entity.h"
 
 using namespace DirectX;
 using namespace engine::platform;
@@ -128,7 +127,6 @@ namespace engine::core {
             sampDesc
         );
 
-        LOG_DEBUG("Initializing skybox...");
         LOG_DEBUG("Creating skybox...");
         m_skyboxMesh = std::make_unique<renderer::SkyboxMesh>(
             m_graphics->getDevice(),
@@ -201,7 +199,8 @@ namespace engine::core {
         });
 
         LOG_DEBUG("Creating scene...");
-        m_scene = std::make_unique<Scene>();
+        m_scene     = std::make_unique<Scene>();
+        m_hierarchy = std::make_unique<SceneHierarchy>();
 
         m_cubeEntity = m_scene->createEntity("Cube");
         m_cubeEntity->addComponent<Transform>();
