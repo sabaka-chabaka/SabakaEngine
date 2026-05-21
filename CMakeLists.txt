@@ -40,6 +40,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/core/Entity.h
         src/core/Scene.cpp
         src/core/Scene.h
+        src/core/SceneNode.cpp
+        src/core/SceneNode.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
