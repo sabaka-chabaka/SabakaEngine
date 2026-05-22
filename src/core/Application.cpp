@@ -1,5 +1,6 @@
 #include "core/Application.h"
 #include "core/Logger.h"
+#include "math/AABB.h"
 #include "platform/Input.h"
 #include <DirectXMath.h>
 #include <chrono>
@@ -230,6 +231,12 @@ namespace engine::core {
         mr->setTransformCB(m_transformCB.get());
         mr->setLightCB(m_lightCB.get());
         mr->setCamera(m_camera.get());
+
+        auto* bb = m_cubeEntity->addComponent<BoundingBoxComponent>();
+        math::AABB cubeAABB;
+        cubeAABB.min = { -0.5f, -0.5f, -0.5f };
+        cubeAABB.max = {  0.5f,  0.5f,  0.5f };
+        bb->setLocalAABB(cubeAABB);
 
         LOG_INFO("Scene resources ready");
     }

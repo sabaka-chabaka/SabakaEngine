@@ -4,6 +4,8 @@
 #include "core/SceneNode.h"
 #include <DirectXMath.h>
 
+#include "Logger.h"
+
 using namespace DirectX;
 
 namespace engine::core {
@@ -15,6 +17,7 @@ namespace engine::core {
     }
 
     void BoundingBoxComponent::buildFromVertices(const std::vector<renderer::Vertex>& vertices) {
+        LOG_DEBUG("Building AABB from vertices");
         m_localAABB = math::AABB::fromVertices(vertices);
     }
 

@@ -17,7 +17,7 @@
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
 #include "core/MeshRenderer.h"
-#include "core/MeshRenderer.h"
+#include "core/BoundingBoxComponent.h"
 #include <memory>
 
 namespace engine::core {

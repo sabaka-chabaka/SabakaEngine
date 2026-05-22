@@ -50,8 +50,8 @@
 [✓] 34. MeshRenderer компонент
 [✓] 35. Material система (шейдер + параметры + текстуры)
 [✓] 36. Загрузчик OBJ мешей (tinyobjloader)
-[ ] 37. Загрузчик GLTF мешей (tinygltf)
-[ ] 38. Bounding Box (AABB для каждого меша)
+[x] 37. Загрузчик GLTF мешей (tinygltf)
+[✓] 38. Bounding Box (AABB для каждого меша)
 ```
 
 ### Блок 5 — GPU оптимизации
