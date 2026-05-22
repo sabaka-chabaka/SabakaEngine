@@ -53,6 +53,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/math/AABB.h
         src/core/BoundingBoxComponent.cpp
         src/core/BoundingBoxComponent.h
+        src/math/Frustum.cpp
+        src/math/Frustum.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
