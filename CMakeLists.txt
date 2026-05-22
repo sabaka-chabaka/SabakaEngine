@@ -45,6 +45,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/core/SceneHierarchy.cpp
         src/core/SceneHierarchy.h
         src/renderer/Material.cpp
+        src/core/MeshRenderer.cpp
+        src/core/MeshRenderer.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
