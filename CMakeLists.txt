@@ -47,7 +47,6 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/Material.cpp
         src/core/MeshRenderer.cpp
         src/core/MeshRenderer.h
-        third_party/tinyobjloader/tiny_obj_loader.h
         src/io/ObjLoader.cpp
         src/io/ObjLoader.h
 )
@@ -67,7 +66,10 @@ add_custom_command(TARGET SabakaEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/textures"
         "$<TARGET_FILE_DIR:SabakaEngine>/textures"
-        COMMENT "Copying shaders and textures to output directory"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/models"
+        "$<TARGET_FILE_DIR:SabakaEngine>/models"
+        COMMENT "Copying shaders, models and textures to output directory"
 )
 
 install(TARGETS SabakaEngine DESTINATION .)

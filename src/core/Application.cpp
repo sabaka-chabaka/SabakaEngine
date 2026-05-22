@@ -6,6 +6,8 @@
 #include <cmath>
 #include <filesystem>
 
+#include "io/ObjLoader.h"
+
 using namespace DirectX;
 using namespace engine::platform;
 
@@ -17,6 +19,8 @@ namespace engine::core {
     }
 
     Application::Application() {
+        std::string exeDir = getExeDir();
+
         AllocConsole();
         freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
 
@@ -48,12 +52,15 @@ namespace engine::core {
         LOG_INFO("DirectX 11 device initialized");
 
         LOG_DEBUG("Creating base cube mesh...");
-        m_mesh = std::make_unique<renderer::Mesh>(
-            renderer::Mesh::createCube(
-                m_graphics->getDevice(),
-                m_graphics->getDeviceContext()
-            )
-        );
+        try {
+            m_mesh = std::make_unique<renderer::Mesh>(
+                io::ObjLoader::load(m_graphics->getDevice(), m_graphics->getDeviceContext(), exeDir + "/models/guy.obj")
+            );
+        }
+        catch (const std::exception& e) {
+            MessageBoxA(nullptr, e.what(), "Error", MB_OK | MB_ICONERROR);
+            return;
+        }
 
         std::vector<renderer::InputElementDesc> cubeLayout = {
             {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
@@ -81,8 +88,6 @@ namespace engine::core {
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
-
-        std::string exeDir = getExeDir();
 
         renderer::TextureDesc texDesc;
         texDesc.generateMips = true;
@@ -172,7 +177,7 @@ namespace engine::core {
         );
 
         renderer::CameraDesc camDesc;
-        camDesc.position = { 0.0f, 1.5f, -4.0f };
+        camDesc.position = { 0.0f, 1.5f, -15.0f };
         camDesc.target   = { 0.0f, 0.0f,  0.0f };
         camDesc.up       = { 0.0f, 1.0f,  0.0f };
         camDesc.fovY     = XM_PIDIV4;
