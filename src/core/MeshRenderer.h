@@ -1,11 +1,12 @@
 #pragma once
-#include "Component.h"
+#include "core/Component.h"
 #include "renderer/Mesh.h"
 #include "renderer/Material.h"
 #include "renderer/ConstantBuffer.h"
 #include "renderer/TransformData.h"
 #include "renderer/Light.h"
 #include "renderer/Camera.h"
+#include "math/Frustum.h"
 
 namespace engine::core {
 
@@ -21,6 +22,7 @@ namespace engine::core {
         void setTransformCB(renderer::ConstantBuffer<renderer::TransformData>* cb);
         void setLightCB(renderer::ConstantBuffer<renderer::LightBuffer>* cb);
         void setCamera(renderer::Camera* camera);
+        void setFrustum(const math::Frustum* frustum);
 
         renderer::Mesh*     getMesh()     const;
         renderer::Material* getMaterial() const;
@@ -32,5 +34,6 @@ namespace engine::core {
         renderer::ConstantBuffer<renderer::TransformData>* m_transformCB = nullptr;
         renderer::ConstantBuffer<renderer::LightBuffer>*   m_lightCB     = nullptr;
         renderer::Camera*                                  m_camera      = nullptr;
+        math::Frustum*                                     m_frustum     = nullptr;
     };
 }

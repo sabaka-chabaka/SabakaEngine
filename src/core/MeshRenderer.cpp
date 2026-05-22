@@ -1,7 +1,9 @@
-#include "MeshRenderer.h"
-#include "Entity.h"
-#include "Transform.h"
-#include "SceneNode.h"
+#include "core/MeshRenderer.h"
+#include "core/Entity.h"
+#include "core/Transform.h"
+#include "core/SceneNode.h"
+#include "core/BoundingBoxComponent.h"
+#include "core/LodComponent.h"
 #include <DirectXMath.h>
 
 using namespace DirectX;
@@ -10,17 +12,18 @@ namespace engine::core {
 
     MeshRenderer::~MeshRenderer() = default;
 
-    void MeshRenderer::setMesh(renderer::Mesh* mesh)                                       { m_mesh        = mesh; }
-    void MeshRenderer::setMaterial(renderer::Material* material)                           { m_material    = material; }
-    void MeshRenderer::setTransformCB(renderer::ConstantBuffer<renderer::TransformData>* cb) { m_transformCB = cb; }
-    void MeshRenderer::setLightCB(renderer::ConstantBuffer<renderer::LightBuffer>* cb)    { m_lightCB     = cb; }
-    void MeshRenderer::setCamera(renderer::Camera* camera)                                 { m_camera      = camera; }
+    void MeshRenderer::setMesh(renderer::Mesh* mesh)                                          { m_mesh        = mesh; }
+    void MeshRenderer::setMaterial(renderer::Material* material)                              { m_material    = material; }
+    void MeshRenderer::setTransformCB(renderer::ConstantBuffer<renderer::TransformData>* cb)  { m_transformCB = cb; }
+    void MeshRenderer::setLightCB(renderer::ConstantBuffer<renderer::LightBuffer>* cb)        { m_lightCB     = cb; }
+    void MeshRenderer::setCamera(renderer::Camera* camera)                                    { m_camera      = camera; }
+    void MeshRenderer::setFrustum(const math::Frustum* frustum)                               { m_frustum     = frustum; }
 
     renderer::Mesh*     MeshRenderer::getMesh()     const { return m_mesh; }
     renderer::Material* MeshRenderer::getMaterial() const { return m_material; }
 
     void MeshRenderer::onRender() {
-        if (!m_mesh || !m_material || !m_transformCB || !m_camera || !owner) return;
+        if (!m_material || !m_transformCB || !m_camera || !owner) return;
 
         XMMATRIX world;
         XMMATRIX normalMatrix;
@@ -36,6 +39,36 @@ namespace engine::core {
             normalMatrix = XMMatrixIdentity();
         }
 
+        if (m_frustum) {
+            if (auto* bb = owner->getComponent<BoundingBoxComponent>()) {
+                if (!m_frustum->intersects(bb->getWorldAABB()))
+                    return;
+            }
+        }
+
+        renderer::Mesh* meshToDraw = m_mesh;
+
+        if (auto* lod = owner->getComponent<LodComponent>()) {
+            XMFLOAT3 camPos = m_camera->getPosition();
+            XMVECTOR camVec = XMLoadFloat3(&camPos);
+
+            XMFLOAT3 center;
+            if (auto* bb = owner->getComponent<BoundingBoxComponent>()) {
+                center = bb->getWorldAABB().center();
+            } else {
+                XMFLOAT3 worldPos;
+                XMStoreFloat3(&worldPos, world.r[3]);
+                center = worldPos;
+            }
+
+            XMVECTOR objVec  = XMLoadFloat3(&center);
+            float    dist    = XMVectorGetX(XMVector3Length(camVec - objVec));
+            renderer::Mesh* lodMesh = lod->selectMesh(dist);
+            if (lodMesh) meshToDraw = lodMesh;
+        }
+
+        if (!meshToDraw) return;
+
         renderer::TransformData td;
         td.model        = XMMatrixTranspose(world);
         td.view         = XMMatrixTranspose(m_camera->getViewMatrix());
@@ -45,11 +78,9 @@ namespace engine::core {
         m_transformCB->update(td);
         m_transformCB->bindVS(0);
 
-        if (m_lightCB) {
-            m_lightCB->bindPS(2);
-        }
+        if (m_lightCB) m_lightCB->bindPS(2);
 
         m_material->bind();
-        m_mesh->draw();
+        meshToDraw->draw();
     }
 }
