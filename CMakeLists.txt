@@ -49,6 +49,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/core/MeshRenderer.h
         src/io/ObjLoader.cpp
         src/io/ObjLoader.h
+        src/math/AABB.cpp
+        src/math/AABB.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
