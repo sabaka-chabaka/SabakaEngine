@@ -51,6 +51,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/io/ObjLoader.h
         src/math/AABB.cpp
         src/math/AABB.h
+        src/core/BoundingBoxComponent.cpp
+        src/core/BoundingBoxComponent.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
