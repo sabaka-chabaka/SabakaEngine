@@ -57,6 +57,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/math/Frustum.h
         src/renderer/InstancedMesh.cpp
         src/renderer/InstancedMesh.h
+        src/renderer/DepthPrePass.cpp
+        src/renderer/DepthPrePass.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)

@@ -156,7 +156,7 @@ namespace engine::renderer {
     void GraphicsDevice::rebuildBlendState() {
         D3D11_BLEND_DESC desc = {};
         auto &rt = desc.RenderTarget[0];
-        rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        rt.RenderTargetWriteMask = m_colorWrite ? D3D11_COLOR_WRITE_ENABLE_ALL : 0;
 
         switch (m_blendMode) {
             case BlendMode::Opaque:
@@ -279,6 +279,14 @@ namespace engine::renderer {
         m_depthClip = enabled;
         rebuildRasterizerState();
         m_context->RSSetState(m_rasterizerState.Get());
+    }
+
+    void GraphicsDevice::setColorWriteEnabled(bool enabled) {
+        m_colorWrite = enabled;
+        rebuildBlendState();
+        float blendFactor[4] = {};
+        m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
+        LOG_DEBUG("Color write enabled: " + std::to_string(enabled));
     }
 
     ID3D11Device *GraphicsDevice::getDevice() const { return m_device.Get(); }

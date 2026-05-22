@@ -50,6 +50,8 @@ namespace engine::renderer {
 
         void setDepthClipEnabled(bool enabled);
 
+        void setColorWriteEnabled(bool enabled);
+
         ID3D11Device *getDevice() const;
 
         ID3D11DeviceContext *getDeviceContext() const;
@@ -84,8 +86,9 @@ namespace engine::renderer {
         BlendMode m_blendMode = BlendMode::Opaque;
         DepthFunc m_depthFunc = DepthFunc::Less;
         bool m_depthWrite = true;
-        bool m_depthClip = true;
-        bool m_vsync = true;
+        bool m_depthClip  = true;
+        bool m_colorWrite = true;
+        bool m_vsync      = true;
         int m_width = 0;
         int m_height = 0;
     };
