@@ -16,6 +16,8 @@
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
+#include "core/MeshRenderer.h"
+#include "core/MeshRenderer.h"
 #include <memory>
 
 namespace engine::core {
@@ -39,12 +41,12 @@ namespace engine::core {
         std::unique_ptr<renderer::Shader>                                   m_shader;
         std::unique_ptr<renderer::Camera>                                   m_camera;
         std::unique_ptr<renderer::ConstantBuffer<renderer::TransformData>>  m_transformCB;
-        std::unique_ptr<renderer::ConstantBuffer<renderer::MaterialData>>   m_materialCB;
         std::unique_ptr<renderer::ConstantBuffer<renderer::LightBuffer>>    m_lightCB;
         std::unique_ptr<renderer::Texture2D>                                m_diffuseTexture;
         std::unique_ptr<renderer::Texture2D>                                m_specularTexture;
         std::unique_ptr<renderer::Texture2D>                                m_normalMap;
         std::unique_ptr<renderer::SamplerState>                             m_sampler;
+        std::unique_ptr<renderer::Material>                                 m_cubeMaterial;
 
         std::unique_ptr<renderer::SkyboxMesh>                               m_skyboxMesh;
         std::unique_ptr<renderer::Shader>                                   m_skyboxShader;

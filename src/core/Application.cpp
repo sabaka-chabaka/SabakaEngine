@@ -26,7 +26,7 @@ namespace engine::core {
         LOG_INFO("Initializing SabakaEngine");
 
         platform::WindowDesc wDesc;
-        wDesc.title = L"SabakaEngine v0.1";
+        wDesc.title = L"SabakaEngine v0.4";
         wDesc.width = 1280;
         wDesc.height = 720;
 
@@ -73,11 +73,6 @@ namespace engine::core {
 
         LOG_DEBUG("Creating constant buffers...");
         m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData>>(
-            m_graphics->getDevice(),
-            m_graphics->getDeviceContext()
-        );
-
-        m_materialCB = std::make_unique<renderer::ConstantBuffer<renderer::MaterialData>>(
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
@@ -205,6 +200,32 @@ namespace engine::core {
         m_cubeEntity = m_scene->createEntity("Cube");
         m_cubeEntity->addComponent<Transform>();
 
+        LOG_DEBUG("Creating material...");
+        m_cubeMaterial = std::make_unique<renderer::Material>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+        m_cubeMaterial->setShader(m_shader.get());
+        m_cubeMaterial->setDiffuseTexture(m_diffuseTexture.get());
+        m_cubeMaterial->setSpecularTexture(m_specularTexture.get());
+        m_cubeMaterial->setNormalMap(m_normalMap.get());
+        m_cubeMaterial->setSampler(m_sampler.get());
+
+        renderer::MaterialData matData;
+        matData.specularIntensity = 0.6f;
+        matData.specularPower     = 32.0f;
+        matData.uvScale           = { 1.0f, 1.0f };
+        matData.uvOffset          = { 0.0f, 0.0f };
+        matData.useNormalMap      = 1.0f;
+        m_cubeMaterial->setData(matData);
+
+        auto* mr = m_cubeEntity->addComponent<MeshRenderer>();
+        mr->setMesh(m_mesh.get());
+        mr->setMaterial(m_cubeMaterial.get());
+        mr->setTransformCB(m_transformCB.get());
+        mr->setLightCB(m_lightCB.get());
+        mr->setCamera(m_camera.get());
+
         LOG_INFO("Scene resources ready");
     }
 
@@ -215,13 +236,6 @@ namespace engine::core {
         LOG_INFO("Entering main loop");
 
         auto lastTime = Clock::now();
-
-        renderer::MaterialData material;
-        material.specularIntensity = 0.6f;
-        material.specularPower     = 32.0f;
-        material.uvScale           = { 1.0f, 1.0f };
-        material.uvOffset          = { 0.0f, 0.0f };
-        material.useNormalMap      = 1.0f;
 
         renderer::LightBuffer lightBuf;
         lightBuf.ambientColor = { 0.3f, 0.3f, 0.35f, 1.0f };
@@ -288,21 +302,33 @@ namespace engine::core {
                     LOG_INFO(en > 0.5f ? "Spot light ON" : "Spot light OFF");
                 }
                 if (input.isKeyPressed(Key::F5)) {
-                    material.useNormalMap = (material.useNormalMap > 0.5f) ? 0.0f : 1.0f;
-                    LOG_INFO(material.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF (vertex normals)");
+                    auto& matData = m_cubeMaterial->getData();
+                    matData.useNormalMap = (matData.useNormalMap > 0.5f) ? 0.0f : 1.0f;
+                    LOG_INFO(matData.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF (vertex normals)");
                 }
 
-                Transform* transform = m_cubeEntity->getComponent<Transform>();
+                auto* transform = m_cubeEntity->getComponent<Transform>();
                 transform->rotateEuler(
                     deltaTime * 0.4f,
                     deltaTime * 0.8f,
                     deltaTime * 0.2f
                 );
 
+                orbitAngle += deltaTime;
+
+                const float ptOrbitRadius = 2.5f;
+                lightBuf.lights[1].positionAndType = {
+                    ptOrbitRadius * cosf(orbitAngle),
+                    1.5f,
+                    ptOrbitRadius * sinf(orbitAngle),
+                    static_cast<float>(renderer::LightType::Point)
+                };
+
+                lightBuf.viewPos = m_camera->getPosition();
+                m_lightCB->update(lightBuf);
+
                 m_scene->update(deltaTime);
                 onUpdate(deltaTime);
-
-                orbitAngle += deltaTime;
 
                 XMMATRIX view       = m_camera->getViewMatrix();
                 XMMATRIX projection = m_camera->getProjectionMatrix();
@@ -345,43 +371,6 @@ namespace engine::core {
                 m_graphics->setDepthFunc(renderer::DepthFunc::Less);
                 m_graphics->setCullMode(renderer::CullMode::None);
                 m_graphics->setDepthClipEnabled(true);
-
-                {
-                    XMMATRIX model        = transform->getWorldMatrix();
-                    XMMATRIX normalMatrix = transform->getNormalMatrix();
-
-                    renderer::TransformData td;
-                    td.model        = XMMatrixTranspose(model);
-                    td.view         = XMMatrixTranspose(view);
-                    td.projection   = XMMatrixTranspose(projection);
-                    td.normalMatrix = XMMatrixTranspose(normalMatrix);
-
-                    m_transformCB->update(td);
-                    m_transformCB->bindVS(0);
-
-                    m_materialCB->update(material);
-                    m_materialCB->bindPS(1);
-
-                    const float ptOrbitRadius = 2.5f;
-                    lightBuf.lights[1].positionAndType = {
-                        ptOrbitRadius * cosf(orbitAngle),
-                        1.5f,
-                        ptOrbitRadius * sinf(orbitAngle),
-                        static_cast<float>(renderer::LightType::Point)
-                    };
-
-                    lightBuf.viewPos = m_camera->getPosition();
-                    m_lightCB->update(lightBuf);
-                    m_lightCB->bindPS(2);
-
-                    m_shader->bind(m_graphics->getDeviceContext());
-
-                    m_diffuseTexture->bindPS(0);
-                    m_specularTexture->bindPS(1);
-                    m_normalMap->bindPS(2);
-                    m_sampler->bindPS(0);
-                    m_mesh->draw();
-                }
 
                 m_scene->render();
                 onRender();
