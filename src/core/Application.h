@@ -13,11 +13,15 @@
 #include "renderer/CubemapTexture.h"
 #include "renderer/SkyboxBuffer.h"
 #include "renderer/SkyboxMesh.h"
+#include "renderer/DepthPrePass.h"
+#include "renderer/OcclusionQuery.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
 #include "core/MeshRenderer.h"
 #include "core/BoundingBoxComponent.h"
+#include "core/LodComponent.h"
+#include "math/Frustum.h"
 #include <memory>
 
 namespace engine::core {
@@ -46,7 +50,6 @@ namespace engine::core {
         std::unique_ptr<renderer::Texture2D>                                m_specularTexture;
         std::unique_ptr<renderer::Texture2D>                                m_normalMap;
         std::unique_ptr<renderer::SamplerState>                             m_sampler;
-        std::unique_ptr<renderer::Material>                                 m_cubeMaterial;
 
         std::unique_ptr<renderer::SkyboxMesh>                               m_skyboxMesh;
         std::unique_ptr<renderer::Shader>                                   m_skyboxShader;
@@ -54,8 +57,15 @@ namespace engine::core {
         std::unique_ptr<renderer::ConstantBuffer<renderer::SkyboxData>>     m_skyboxCB;
         std::unique_ptr<renderer::SamplerState>                             m_skyboxSampler;
 
+        std::unique_ptr<renderer::DepthPrePass>                             m_depthPrePass;
+        std::unique_ptr<renderer::OcclusionQuery>                           m_occlusionQuery;
+
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
+        std::unique_ptr<renderer::Material>                                 m_cubeMaterial;
+
+        math::Frustum                                                       m_frustum;
+
         Entity*                                                             m_cubeEntity = nullptr;
     };
 }

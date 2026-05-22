@@ -56,12 +56,12 @@
 
 ### Блок 5 — GPU оптимизации
 ```
-[ ] 39. Per-object Constant Buffer (каждый Entity свои матрицы)
-[ ] 40. Frustum Culling (AABB vs 6 плоскостей камеры)
-[ ] 41. Instancing (DrawIndexedInstanced, трава/деревья)
-[ ] 42. Depth Pre-pass (Z-only pass перед основным)
-[ ] 43. Occlusion Culling (GPU query)
-[ ] 44. LOD система (Level of Detail по дистанции)
+[✓] 39. Per-object Constant Buffer (каждый Entity свои матрицы)
+[✓] 40. Frustum Culling (AABB vs 6 плоскостей камеры)
+[✓] 41. Instancing (DrawIndexedInstanced, трава/деревья)
+[✓] 42. Depth Pre-pass (Z-only pass перед основным)
+[✓] 43. Occlusion Culling (GPU query)
+[✓] 44. LOD система (Level of Detail по дистанции)
 ```
 
 ### Блок 6 — Shadow

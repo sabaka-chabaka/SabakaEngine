@@ -194,10 +194,20 @@ namespace engine::core {
         m_window->setResizeCallback([this](int w, int h) {
             LOG_DEBUG("Window resized: " + std::to_string(w) + "x" + std::to_string(h));
             m_graphics->onResize(w, h);
-            if (m_camera && h > 0) {
+            if (m_camera && h > 0)
                 m_camera->setAspectRatio(static_cast<float>(w) / static_cast<float>(h));
-            }
         });
+
+        LOG_DEBUG("Creating depth pre-pass...");
+        m_depthPrePass = std::make_unique<renderer::DepthPrePass>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+
+        LOG_DEBUG("Creating occlusion query...");
+        m_occlusionQuery = std::make_unique<renderer::OcclusionQuery>(
+            m_graphics->getDevice()
+        );
 
         LOG_DEBUG("Creating scene...");
         m_scene     = std::make_unique<Scene>();
@@ -231,6 +241,7 @@ namespace engine::core {
         mr->setTransformCB(m_transformCB.get());
         mr->setLightCB(m_lightCB.get());
         mr->setCamera(m_camera.get());
+        mr->setFrustum(&m_frustum);
 
         auto* bb = m_cubeEntity->addComponent<BoundingBoxComponent>();
         math::AABB cubeAABB;
@@ -339,11 +350,13 @@ namespace engine::core {
                 lightBuf.viewPos = m_camera->getPosition();
                 m_lightCB->update(lightBuf);
 
-                m_scene->update(deltaTime);
-                onUpdate(deltaTime);
-
                 XMMATRIX view       = m_camera->getViewMatrix();
                 XMMATRIX projection = m_camera->getProjectionMatrix();
+
+                m_frustum.buildFromViewProjection(view * projection);
+
+                m_scene->update(deltaTime);
+                onUpdate(deltaTime);
 
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
 
@@ -378,13 +391,23 @@ namespace engine::core {
                     ctx->Draw(3, 0);
                 }
 
-                m_graphics->setBlendMode(renderer::BlendMode::Opaque);
-                m_graphics->setDepthWriteEnabled(true);
-                m_graphics->setDepthFunc(renderer::DepthFunc::Less);
                 m_graphics->setCullMode(renderer::CullMode::None);
                 m_graphics->setDepthClipEnabled(true);
 
+                m_depthPrePass->begin(m_graphics.get());
                 m_scene->render();
+                m_depthPrePass->end(m_graphics.get());
+
+                m_graphics->setBlendMode(renderer::BlendMode::Opaque);
+                m_graphics->setDepthWriteEnabled(false);
+
+                m_occlusionQuery->begin(m_graphics->getDeviceContext());
+                m_scene->render();
+                m_occlusionQuery->end(m_graphics->getDeviceContext());
+
+                m_graphics->setDepthWriteEnabled(true);
+                m_graphics->setDepthFunc(renderer::DepthFunc::Less);
+
                 onRender();
                 m_graphics->endFrame();
 
