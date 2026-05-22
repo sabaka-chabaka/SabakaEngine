@@ -72,6 +72,27 @@ namespace engine::renderer {
         m_context->DrawIndexed(m_indexCount, 0, 0);
     }
 
+    void Mesh::bindBuffers() const {
+        m_context->IASetVertexBuffers(
+            0, 1,
+            m_vertexBuffer.GetAddressOf(),
+            &m_vertexStride,
+            &m_vertexOffset
+        );
+
+        m_context->IASetIndexBuffer(
+            m_indexBuffer.Get(),
+            DXGI_FORMAT_R32_UINT,
+            0
+        );
+
+        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    }
+
+    void Mesh::drawInstanced(uint32_t instanceCount) const {
+        m_context->DrawIndexedInstanced(m_indexCount, instanceCount, 0, 0, 0);
+    }
+
     static std::array<float, 3> calcFaceTangent(
         const Vertex& v0, const Vertex& v1, const Vertex& v2)
     {

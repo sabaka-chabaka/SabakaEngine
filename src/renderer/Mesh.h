@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <vector>
@@ -30,6 +31,8 @@ namespace engine::renderer {
         Mesh& operator=(Mesh&&)      = default;
 
         void draw() const;
+        void bindBuffers() const;
+        void drawInstanced(uint32_t instanceCount) const;
 
         static Mesh createCube(ID3D11Device* device, ID3D11DeviceContext* context);
 
