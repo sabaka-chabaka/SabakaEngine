@@ -47,6 +47,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/Material.cpp
         src/core/MeshRenderer.cpp
         src/core/MeshRenderer.h
+        third_party/tinyobjloader/tiny_obj_loader.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)

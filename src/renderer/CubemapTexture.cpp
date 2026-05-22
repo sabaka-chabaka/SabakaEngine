@@ -1,6 +1,6 @@
 #include "CubemapTexture.h"
 #include "core/Logger.h"
-#include "../third_party/stb_image.h"
+#include "../../third_party/stb_image/stb_image.h"
 #include <stdexcept>
 #include <vector>
 

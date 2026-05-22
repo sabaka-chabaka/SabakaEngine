@@ -1,5 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "../third_party/stb_image.h"
+#include "../../third_party/stb_image/stb_image.h"
 
 #include "Texture2D.h"
 #include "core/Logger.h"
