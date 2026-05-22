@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+
 #include "GraphicsDevice.h"
 #include "Shader.h"
 #include "ConstantBuffer.h"

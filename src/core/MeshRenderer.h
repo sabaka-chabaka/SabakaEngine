@@ -22,7 +22,7 @@ namespace engine::core {
         void setTransformCB(renderer::ConstantBuffer<renderer::TransformData>* cb);
         void setLightCB(renderer::ConstantBuffer<renderer::LightBuffer>* cb);
         void setCamera(renderer::Camera* camera);
-        void setFrustum(const math::Frustum* frustum);
+        void setFrustum(math::Frustum* frustum);
 
         renderer::Mesh*     getMesh()     const;
         renderer::Material* getMaterial() const;

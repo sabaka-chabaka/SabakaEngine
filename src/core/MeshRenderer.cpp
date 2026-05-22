@@ -17,7 +17,7 @@ namespace engine::core {
     void MeshRenderer::setTransformCB(renderer::ConstantBuffer<renderer::TransformData>* cb)  { m_transformCB = cb; }
     void MeshRenderer::setLightCB(renderer::ConstantBuffer<renderer::LightBuffer>* cb)        { m_lightCB     = cb; }
     void MeshRenderer::setCamera(renderer::Camera* camera)                                    { m_camera      = camera; }
-    void MeshRenderer::setFrustum(const math::Frustum* frustum)                               { m_frustum     = frustum; }
+    void MeshRenderer::setFrustum(math::Frustum* frustum)                               { m_frustum     = frustum; }
 
     renderer::Mesh*     MeshRenderer::getMesh()     const { return m_mesh; }
     renderer::Material* MeshRenderer::getMaterial() const { return m_material; }

@@ -286,7 +286,6 @@ namespace engine::renderer {
         rebuildBlendState();
         float blendFactor[4] = {};
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
-        LOG_DEBUG("Color write enabled: " + std::to_string(enabled));
     }
 
     ID3D11Device *GraphicsDevice::getDevice() const { return m_device.Get(); }
