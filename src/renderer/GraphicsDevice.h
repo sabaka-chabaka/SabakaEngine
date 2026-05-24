@@ -20,7 +20,7 @@ namespace engine::renderer {
 
     enum class BlendMode { Opaque, AlphaBlend, Additive, Multiplicative };
 
-    enum class DepthFunc { Less, LessEqual };
+    enum class DepthFunc { Less, LessEqual, Equal };
 
     class GraphicsDevice {
     public:
@@ -52,9 +52,12 @@ namespace engine::renderer {
 
         void setColorWriteEnabled(bool enabled);
 
-        ID3D11Device *getDevice() const;
-
-        ID3D11DeviceContext *getDeviceContext() const;
+        ID3D11Device*             getDevice()        const;
+        ID3D11DeviceContext*      getDeviceContext()  const;
+        ID3D11RenderTargetView*   getRTV()            const;
+        ID3D11DepthStencilView*   getDSV()            const;
+        int                       getWidth()          const;
+        int                       getHeight()         const;
 
     private:
         void createRenderTargetView();

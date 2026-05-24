@@ -3,25 +3,23 @@
 #include <stdexcept>
 
 namespace engine::renderer {
-    GraphicsDevice::GraphicsDevice(const GraphicsDeviceDesc &desc)
-        : m_vsync(desc.vsync), m_width(desc.width), m_height(desc.height) {
+    GraphicsDevice::GraphicsDevice(const GraphicsDeviceDesc& desc)
+        : m_vsync(desc.vsync), m_width(desc.width), m_height(desc.height)
+    {
         DXGI_SWAP_CHAIN_DESC scd = {};
-        scd.BufferCount = 2;
-        scd.BufferDesc.Width = m_width;
-        scd.BufferDesc.Height = m_height;
-        scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        scd.BufferDesc.RefreshRate.Numerator = 60;
+        scd.BufferCount                        = 2;
+        scd.BufferDesc.Width                   = m_width;
+        scd.BufferDesc.Height                  = m_height;
+        scd.BufferDesc.Format                  = DXGI_FORMAT_R8G8B8A8_UNORM;
+        scd.BufferDesc.RefreshRate.Numerator   = 60;
         scd.BufferDesc.RefreshRate.Denominator = 1;
-        scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        scd.OutputWindow = desc.hwnd;
-        scd.SampleDesc.Count = 1;
-        scd.Windowed = TRUE;
-        scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        scd.BufferUsage                        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        scd.OutputWindow                       = desc.hwnd;
+        scd.SampleDesc.Count                   = 1;
+        scd.Windowed                           = TRUE;
+        scd.SwapEffect                         = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-        D3D_FEATURE_LEVEL featureLevels[] = {
-            D3D_FEATURE_LEVEL_11_1,
-            D3D_FEATURE_LEVEL_11_0
-        };
+        D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
         D3D_FEATURE_LEVEL featureLevel;
 
         UINT flags = 0;
@@ -42,24 +40,20 @@ namespace engine::renderer {
 
         {
             const char* levelStr = "Unknown";
-            if (featureLevel == D3D_FEATURE_LEVEL_11_1) levelStr = "11.1";
+            if      (featureLevel == D3D_FEATURE_LEVEL_11_1) levelStr = "11.1";
             else if (featureLevel == D3D_FEATURE_LEVEL_11_0) levelStr = "11.0";
             LOG_INFO("D3D11 Device created. Feature Level: " + std::string(levelStr));
 
-            ComPtr<IDXGIDevice> dxgiDevice;
-            if (SUCCEEDED(m_device.As(&dxgiDevice))) {
-                ComPtr<IDXGIAdapter> adapter;
-                if (SUCCEEDED(dxgiDevice->GetAdapter(&adapter))) {
-                    DXGI_ADAPTER_DESC desc;
-                    adapter->GetDesc(&desc);
-                    
-                    char sDesc[128];
-                    size_t convertedChars = 0;
-                    wcstombs_s(&convertedChars, sDesc, sizeof(sDesc), desc.Description, _TRUNCATE);
-                    
-                    LOG_INFO("Adapter: " + std::string(sDesc));
-                    LOG_INFO("Video Memory: " + std::to_string(desc.DedicatedVideoMemory / (1024 * 1024)) + " MB");
-                }
+            ComPtr<IDXGIDevice>  dxgiDevice;
+            ComPtr<IDXGIAdapter> adapter;
+            if (SUCCEEDED(m_device.As(&dxgiDevice)) && SUCCEEDED(dxgiDevice->GetAdapter(&adapter))) {
+                DXGI_ADAPTER_DESC adesc;
+                adapter->GetDesc(&adesc);
+                char sDesc[128];
+                size_t n = 0;
+                wcstombs_s(&n, sDesc, sizeof(sDesc), adesc.Description, _TRUNCATE);
+                LOG_INFO("Adapter: " + std::string(sDesc));
+                LOG_INFO("Video Memory: " + std::to_string(adesc.DedicatedVideoMemory / (1024 * 1024)) + " MB");
             }
         }
 
@@ -75,7 +69,6 @@ namespace engine::renderer {
         ComPtr<ID3D11Texture2D> backBuffer;
         if (FAILED(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
             throw std::runtime_error("Failed to get back buffer");
-
         if (FAILED(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView)))
             throw std::runtime_error("Failed to create RTV");
     }
@@ -87,25 +80,24 @@ namespace engine::renderer {
 
     void GraphicsDevice::createDepthStencilBuffer(int width, int height) {
         D3D11_TEXTURE2D_DESC texDesc = {};
-        texDesc.Width = static_cast<UINT>(width);
-        texDesc.Height = static_cast<UINT>(height);
-        texDesc.MipLevels = 1;
-        texDesc.ArraySize = 1;
-        texDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        texDesc.Width            = static_cast<UINT>(width);
+        texDesc.Height           = static_cast<UINT>(height);
+        texDesc.MipLevels        = 1;
+        texDesc.ArraySize        = 1;
+        texDesc.Format           = DXGI_FORMAT_D24_UNORM_S8_UINT;
         texDesc.SampleDesc.Count = 1;
-        texDesc.Usage = D3D11_USAGE_DEFAULT;
-        texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        texDesc.Usage            = D3D11_USAGE_DEFAULT;
+        texDesc.BindFlags        = D3D11_BIND_DEPTH_STENCIL;
 
         if (FAILED(m_device->CreateTexture2D(&texDesc, nullptr, &m_depthStencilTexture)))
             throw std::runtime_error("Failed to create depth texture");
 
         D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+        dsvDesc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsvDesc.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Texture2D.MipSlice = 0;
 
-        if (FAILED(m_device->CreateDepthStencilView(
-            m_depthStencilTexture.Get(), &dsvDesc, &m_depthStencilView)))
+        if (FAILED(m_device->CreateDepthStencilView(m_depthStencilTexture.Get(), &dsvDesc, &m_depthStencilView)))
             throw std::runtime_error("Failed to create DSV");
 
         LOG_DEBUG("Depth stencil buffer created (" + std::to_string(width) + "x" + std::to_string(height) + ")");
@@ -120,15 +112,18 @@ namespace engine::renderer {
     }
 
     void GraphicsDevice::rebuildDepthStencilState() {
+        D3D11_COMPARISON_FUNC func;
+        switch (m_depthFunc) {
+            case DepthFunc::LessEqual: func = D3D11_COMPARISON_LESS_EQUAL; break;
+            case DepthFunc::Equal:     func = D3D11_COMPARISON_EQUAL;      break;
+            default:                   func = D3D11_COMPARISON_LESS;       break;
+        }
+
         D3D11_DEPTH_STENCIL_DESC dsDesc = {};
-        dsDesc.DepthEnable = TRUE;
-        dsDesc.DepthWriteMask = m_depthWrite
-                                    ? D3D11_DEPTH_WRITE_MASK_ALL
-                                    : D3D11_DEPTH_WRITE_MASK_ZERO;
-        dsDesc.DepthFunc = (m_depthFunc == DepthFunc::LessEqual)
-                               ? D3D11_COMPARISON_LESS_EQUAL
-                               : D3D11_COMPARISON_LESS;
-        dsDesc.StencilEnable = FALSE;
+        dsDesc.DepthEnable    = TRUE;
+        dsDesc.DepthWriteMask = m_depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+        dsDesc.DepthFunc      = func;
+        dsDesc.StencilEnable  = FALSE;
 
         m_depthStencilState.Reset();
         if (FAILED(m_device->CreateDepthStencilState(&dsDesc, &m_depthStencilState)))
@@ -137,16 +132,12 @@ namespace engine::renderer {
 
     void GraphicsDevice::rebuildRasterizerState() {
         D3D11_RASTERIZER_DESC rsDesc = {};
-        rsDesc.FillMode = (m_fillMode == FillMode::Wireframe)
-                              ? D3D11_FILL_WIREFRAME
-                              : D3D11_FILL_SOLID;
-        rsDesc.CullMode = (m_cullMode == CullMode::None)
-                              ? D3D11_CULL_NONE
-                              : (m_cullMode == CullMode::Front)
-                                    ? D3D11_CULL_FRONT
-                                    : D3D11_CULL_BACK;
+        rsDesc.FillMode = (m_fillMode == FillMode::Wireframe) ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
+        rsDesc.CullMode = (m_cullMode == CullMode::None)  ? D3D11_CULL_NONE
+                        : (m_cullMode == CullMode::Front) ? D3D11_CULL_FRONT
+                                                          : D3D11_CULL_BACK;
         rsDesc.FrontCounterClockwise = FALSE;
-        rsDesc.DepthClipEnable = m_depthClip ? TRUE : FALSE;
+        rsDesc.DepthClipEnable       = m_depthClip ? TRUE : FALSE;
 
         m_rasterizerState.Reset();
         if (FAILED(m_device->CreateRasterizerState(&rsDesc, &m_rasterizerState)))
@@ -155,7 +146,7 @@ namespace engine::renderer {
 
     void GraphicsDevice::rebuildBlendState() {
         D3D11_BLEND_DESC desc = {};
-        auto &rt = desc.RenderTarget[0];
+        auto& rt = desc.RenderTarget[0];
         rt.RenderTargetWriteMask = m_colorWrite ? D3D11_COLOR_WRITE_ENABLE_ALL : 0;
 
         switch (m_blendMode) {
@@ -163,31 +154,31 @@ namespace engine::renderer {
                 rt.BlendEnable = FALSE;
                 break;
             case BlendMode::AlphaBlend:
-                rt.BlendEnable = TRUE;
-                rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-                rt.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-                rt.BlendOp = D3D11_BLEND_OP_ADD;
-                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.BlendEnable    = TRUE;
+                rt.SrcBlend       = D3D11_BLEND_SRC_ALPHA;
+                rt.DestBlend      = D3D11_BLEND_INV_SRC_ALPHA;
+                rt.BlendOp        = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha  = D3D11_BLEND_ONE;
                 rt.DestBlendAlpha = D3D11_BLEND_ZERO;
-                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                rt.BlendOpAlpha   = D3D11_BLEND_OP_ADD;
                 break;
             case BlendMode::Additive:
-                rt.BlendEnable = TRUE;
-                rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-                rt.DestBlend = D3D11_BLEND_ONE;
-                rt.BlendOp = D3D11_BLEND_OP_ADD;
-                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.BlendEnable    = TRUE;
+                rt.SrcBlend       = D3D11_BLEND_SRC_ALPHA;
+                rt.DestBlend      = D3D11_BLEND_ONE;
+                rt.BlendOp        = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha  = D3D11_BLEND_ONE;
                 rt.DestBlendAlpha = D3D11_BLEND_ZERO;
-                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                rt.BlendOpAlpha   = D3D11_BLEND_OP_ADD;
                 break;
             case BlendMode::Multiplicative:
-                rt.BlendEnable = TRUE;
-                rt.SrcBlend = D3D11_BLEND_DEST_COLOR;
-                rt.DestBlend = D3D11_BLEND_ZERO;
-                rt.BlendOp = D3D11_BLEND_OP_ADD;
-                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.BlendEnable    = TRUE;
+                rt.SrcBlend       = D3D11_BLEND_DEST_COLOR;
+                rt.DestBlend      = D3D11_BLEND_ZERO;
+                rt.BlendOp        = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha  = D3D11_BLEND_ONE;
                 rt.DestBlendAlpha = D3D11_BLEND_ZERO;
-                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                rt.BlendOpAlpha   = D3D11_BLEND_OP_ADD;
                 break;
         }
 
@@ -197,25 +188,20 @@ namespace engine::renderer {
     }
 
     void GraphicsDevice::beginFrame(float r, float g, float b) {
-        m_context->OMSetRenderTargets(
-            1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+        m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
         m_context->OMSetDepthStencilState(m_depthStencilState.Get(), 0);
 
         float blendFactor[4] = {};
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
         m_context->RSSetState(m_rasterizerState.Get());
 
-        float color[4] = {r, g, b, 1.0f};
+        float color[4] = { r, g, b, 1.0f };
         m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
-        m_context->ClearDepthStencilView(
-            m_depthStencilView.Get(),
-            D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-            1.0f, 0
-        );
+        m_context->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
         D3D11_VIEWPORT vp = {};
-        vp.Width = static_cast<float>(m_width);
-        vp.Height = static_cast<float>(m_height);
+        vp.Width    = static_cast<float>(m_width);
+        vp.Height   = static_cast<float>(m_height);
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
         m_context->RSSetViewports(1, &vp);
@@ -228,7 +214,7 @@ namespace engine::renderer {
     void GraphicsDevice::onResize(int width, int height) {
         if (width == 0 || height == 0) return;
 
-        m_width = width;
+        m_width  = width;
         m_height = height;
 
         releaseRenderTargetView();
@@ -240,8 +226,7 @@ namespace engine::renderer {
         createRenderTargetView();
         createDepthStencilBuffer(width, height);
 
-        LOG_DEBUG("Swap chain resized to " +
-            std::to_string(width) + "x" + std::to_string(height));
+        LOG_DEBUG("Swap chain resized to " + std::to_string(width) + "x" + std::to_string(height));
     }
 
     void GraphicsDevice::setFillMode(FillMode mode) {
@@ -288,6 +273,10 @@ namespace engine::renderer {
         m_context->OMSetBlendState(m_blendState.Get(), blendFactor, 0xffffffff);
     }
 
-    ID3D11Device *GraphicsDevice::getDevice() const { return m_device.Get(); }
-    ID3D11DeviceContext *GraphicsDevice::getDeviceContext() const { return m_context.Get(); }
+    ID3D11Device* GraphicsDevice::getDevice() const { return m_device.Get(); }
+    ID3D11DeviceContext* GraphicsDevice::getDeviceContext() const { return m_context.Get(); }
+    ID3D11RenderTargetView*  GraphicsDevice::getRTV()           const { return m_renderTargetView.Get(); }
+    ID3D11DepthStencilView*  GraphicsDevice::getDSV()           const { return m_depthStencilView.Get(); }
+    int                      GraphicsDevice::getWidth()         const { return m_width; }
+    int                      GraphicsDevice::getHeight()        const { return m_height; }
 }
