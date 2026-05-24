@@ -67,6 +67,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/Shadowmap.h
         src/renderer/ShadowPass.cpp
         src/renderer/ShadowPass.h
+        src/renderer/ShadowSampler.cpp
+        src/renderer/ShadowSampler.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
