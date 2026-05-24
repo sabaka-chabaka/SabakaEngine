@@ -79,6 +79,18 @@ namespace engine::core {
             cubeLayout
         );
 
+        std::vector<renderer::InputElementDesc> shadowLayout = {
+            {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
+        };
+
+        LOG_DEBUG("Compiling shadow shader...");
+        m_shadowShader = std::make_unique<renderer::Shader>(
+            m_graphics->getDevice(),
+            L"shaders/Shadow.vs.hlsl",
+            L"shaders/Shadow.ps.hlsl",
+            shadowLayout
+        );
+
         LOG_DEBUG("Creating constant buffers...");
         m_transformCB = std::make_unique<renderer::ConstantBuffer<renderer::TransformData>>(
             m_graphics->getDevice(),
@@ -134,14 +146,12 @@ namespace engine::core {
             m_graphics->getDeviceContext()
         );
 
-        std::vector<renderer::InputElementDesc> skyboxLayout = {};
-
         LOG_DEBUG("Compiling skybox shader...");
         m_skyboxShader = std::make_unique<renderer::Shader>(
             m_graphics->getDevice(),
             L"shaders/Skybox.vs.hlsl",
             L"shaders/Skybox.ps.hlsl",
-            skyboxLayout
+            std::vector<renderer::InputElementDesc>{}
         );
 
         m_skyboxCB = std::make_unique<renderer::ConstantBuffer<renderer::SkyboxData>>(
@@ -178,7 +188,7 @@ namespace engine::core {
         );
 
         renderer::CameraDesc camDesc;
-        camDesc.position = { 0.0f, 1.5f, -15.0f };
+        camDesc.position = { 0.0f, 1.5f, -4.0f };
         camDesc.target   = { 0.0f, 0.0f,  0.0f };
         camDesc.up       = { 0.0f, 1.0f,  0.0f };
         camDesc.fovY     = XM_PIDIV4;
@@ -208,6 +218,31 @@ namespace engine::core {
         m_occlusionQuery = std::make_unique<renderer::OcclusionQuery>(
             m_graphics->getDevice()
         );
+
+        LOG_DEBUG("Creating shadow map...");
+        renderer::ShadowMapDesc smDesc;
+        smDesc.width  = 2048;
+        smDesc.height = 2048;
+        m_shadowMap = std::make_unique<renderer::ShadowMap>(m_graphics->getDevice(), smDesc);
+
+        renderer::ShadowPassDesc spDesc;
+        spDesc.sceneRadius    = 10.0f;
+        spDesc.shadowDistance = 30.0f;
+        spDesc.nearZ          = 1.0f;
+        spDesc.farZ           = 100.0f;
+        spDesc.constantBias   = 100.0f;
+        spDesc.slopeBias      = 2.0f;
+        spDesc.biasClamp      = 0.1f;
+        spDesc.dynamicBias    = 0.005f;
+        m_shadowPass = std::make_unique<renderer::ShadowPass>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            m_shadowMap.get(),
+            spDesc
+        );
+
+        LOG_DEBUG("Creating shadow sampler...");
+        m_shadowSampler = std::make_unique<renderer::ShadowSampler>(m_graphics->getDevice());
 
         LOG_DEBUG("Creating scene...");
         m_scene     = std::make_unique<Scene>();
@@ -290,6 +325,9 @@ namespace engine::core {
 
         float orbitAngle = 0.0f;
 
+        const XMFLOAT3 sceneCenter  = { 0.0f, 0.0f, 0.0f };
+        const XMFLOAT3 directionalDir = { 1.0f, -1.0f, 1.0f };
+
         try {
             while (m_window->processMessages()) {
                 auto  now       = Clock::now();
@@ -299,11 +337,8 @@ namespace engine::core {
                 auto& input = InputSystem::get();
 
                 if (input.isKeyPressed(Key::Escape)) {
-                    if (input.isMouseCaptured()) {
-                        input.setMouseCaptured(false);
-                    } else {
-                        break;
-                    }
+                    if (input.isMouseCaptured()) input.setMouseCaptured(false);
+                    else break;
                 }
 
                 if (input.isKeyPressed(Key::F1)) {
@@ -327,7 +362,7 @@ namespace engine::core {
                 if (input.isKeyPressed(Key::F5)) {
                     auto& matData = m_cubeMaterial->getData();
                     matData.useNormalMap = (matData.useNormalMap > 0.5f) ? 0.0f : 1.0f;
-                    LOG_INFO(matData.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF (vertex normals)");
+                    LOG_INFO(matData.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF");
                 }
 
                 auto* transform = m_cubeEntity->getComponent<Transform>();
@@ -358,6 +393,13 @@ namespace engine::core {
                 m_scene->update(deltaTime);
                 onUpdate(deltaTime);
 
+                m_shadowPass->begin(m_graphics.get(), directionalDir, sceneCenter);
+                m_shadowShader->bind(m_graphics->getDeviceContext());
+                m_shadowPass->getShadowCB()->bindVS(0);
+                m_transformCB->bindVS(1);
+                m_scene->render();
+                m_shadowPass->end(m_graphics.get(), m_window->getWidth(), m_window->getHeight());
+
                 m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
 
                 m_graphics->setDepthWriteEnabled(false);
@@ -366,8 +408,8 @@ namespace engine::core {
                 m_graphics->setDepthClipEnabled(false);
 
                 {
-                    XMMATRIX viewNoTranslation  = view;
-                    viewNoTranslation.r[3]       = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+                    XMMATRIX viewNoTranslation = view;
+                    viewNoTranslation.r[3]     = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 
                     XMMATRIX vp    = XMMatrixMultiply(viewNoTranslation, projection);
                     XMMATRIX invVP = XMMatrixInverse(nullptr, vp);
@@ -402,7 +444,15 @@ namespace engine::core {
                 m_graphics->setDepthWriteEnabled(false);
 
                 m_occlusionQuery->begin(m_graphics->getDeviceContext());
+
+                m_shadowPass->getShadowCB()->bindVS(3);
+                m_shadowPass->getShadowCB()->bindPS(3);
+                m_shadowMap->bindAsResource(m_graphics->getDeviceContext(), 3);
+                m_shadowSampler->bindPS(m_graphics->getDeviceContext(), 1);
+
                 m_scene->render();
+
+                m_shadowMap->unbindAsResource(m_graphics->getDeviceContext(), 3);
                 m_occlusionQuery->end(m_graphics->getDeviceContext());
 
                 m_graphics->setDepthWriteEnabled(true);
