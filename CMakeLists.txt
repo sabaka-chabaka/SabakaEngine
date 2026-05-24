@@ -63,6 +63,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/OcclusionQuery.h
         src/core/LodComponent.cpp
         src/core/LodComponent.h
+        src/renderer/Shadowmap.cpp
+        src/renderer/Shadowmap.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
