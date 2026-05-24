@@ -16,7 +16,7 @@ namespace engine::renderer {
     struct CascadeData {
         XMMATRIX lightSpaceMatrices[CASCADE_COUNT];
         float    splitDistances[CASCADE_COUNT];
-        float3   lightDir;
+        XMFLOAT3   lightDir;
         float    shadowBias;
     };
 
