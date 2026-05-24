@@ -65,7 +65,7 @@ namespace engine::renderer {
         m_shadowMap->bindAsTarget(m_context);
         m_context->RSSetState(m_shadowRasterizer.Get());
 
-        LOG_DEBUG("Shadow pass begin");
+        LOG_TRACE("Shadow pass begin");
     }
 
     void ShadowPass::end(GraphicsDevice* gfx, int viewportWidth, int viewportHeight) {
@@ -78,7 +78,7 @@ namespace engine::renderer {
         vp.MaxDepth = 1.0f;
         m_context->RSSetViewports(1, &vp);
 
-        LOG_DEBUG("Shadow pass end");
+        LOG_TRACE("Shadow pass end");
     }
 
     ConstantBuffer<ShadowData>* ShadowPass::getShadowCB() {
