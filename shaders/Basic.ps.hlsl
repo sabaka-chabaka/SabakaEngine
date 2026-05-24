@@ -1,7 +1,10 @@
 Texture2D    diffuseMap   : register(t0);
 Texture2D    specularMap  : register(t1);
 Texture2D    normalMap    : register(t2);
+Texture2D    shadowMap    : register(t3);
 SamplerState sampler0     : register(s0);
+
+SamplerComparisonState shadowSampler : register(s1);
 
 cbuffer MaterialBuffer : register(b1)
 {
@@ -15,13 +18,14 @@ cbuffer MaterialBuffer : register(b1)
 
 struct PSInput
 {
-    float4 position : SV_POSITION;
-    float3 color    : COLOR;
-    float2 uv       : TEXCOORD0;
-    float3 worldPos : TEXCOORD1;
-    float3 T        : TEXCOORD2;
-    float3 B        : TEXCOORD3;
-    float3 N        : TEXCOORD4;
+    float4 position  : SV_POSITION;
+    float3 color     : COLOR;
+    float2 uv        : TEXCOORD0;
+    float3 worldPos  : TEXCOORD1;
+    float3 T         : TEXCOORD2;
+    float3 B         : TEXCOORD3;
+    float3 N         : TEXCOORD4;
+    float4 shadowPos : TEXCOORD5;
 };
 
 #define LIGHT_DIRECTIONAL 0
@@ -45,6 +49,51 @@ cbuffer LightBuffer : register(b2)
     int      numLights;
     GpuLight lights[MAX_LIGHTS];
 };
+
+cbuffer ShadowBuffer : register(b3)
+{
+    matrix lightSpaceMatrix;
+    float3 lightDir;
+    float  shadowBias;
+};
+
+float calcShadowPCF(float4 shadowPos, float3 N)
+{
+    float3 proj = shadowPos.xyz / shadowPos.w;
+
+    if (proj.x < -1.0 || proj.x > 1.0 ||
+        proj.y < -1.0 || proj.y > 1.0 ||
+        proj.z <  0.0 || proj.z > 1.0)
+        return 1.0;
+
+    float2 uv;
+    uv.x =  proj.x * 0.5 + 0.5;
+    uv.y = -proj.y * 0.5 + 0.5;
+
+    float depth = proj.z;
+
+    float NdotL = dot(N, normalize(-lightDir));
+    float bias  = max(shadowBias * 10.0 * (1.0 - NdotL), shadowBias);
+
+    float2 shadowMapSize;
+    shadowMap.GetDimensions(shadowMapSize.x, shadowMapSize.y);
+    float2 texelSize = 1.0 / shadowMapSize;
+
+    float shadow = 0.0;
+    [unroll]
+    for (int x = -1; x <= 1; ++x)
+    {
+        [unroll]
+        for (int y = -1; y <= 1; ++y)
+        {
+            float2 offset = float2(x, y) * texelSize;
+            shadow += shadowMap.SampleCmpLevelZero(shadowSampler, uv + offset, depth - bias);
+        }
+    }
+    shadow /= 9.0;
+
+    return shadow;
+}
 
 float calcAttenuation(GpuLight light, float dist)
 {
@@ -70,16 +119,15 @@ float3 calcBlinnPhong(
 }
 
 float3 calcDirectional(GpuLight light, float3 N, float3 V,
-                       float3 baseColor, float3 specTex)
+                       float3 baseColor, float3 specTex, float shadow)
 {
     float3 L = normalize(-light.directionAndRange.xyz);
     return calcBlinnPhong(L, N, V, baseColor, specTex,
-                          light.color.rgb, light.color.a);
+                          light.color.rgb, light.color.a) * shadow;
 }
 
 float3 calcPoint(GpuLight light, float3 worldPos,
-                 float3 N, float3 V,
-                 float3 baseColor, float3 specTex)
+                 float3 N, float3 V, float3 baseColor, float3 specTex)
 {
     float3 vec  = light.positionAndType.xyz - worldPos;
     float  dist = length(vec);
@@ -90,8 +138,7 @@ float3 calcPoint(GpuLight light, float3 worldPos,
 }
 
 float3 calcSpot(GpuLight light, float3 worldPos,
-                float3 N, float3 V,
-                float3 baseColor, float3 specTex)
+                float3 N, float3 V, float3 baseColor, float3 specTex)
 {
     float3 vec      = light.positionAndType.xyz - worldPos;
     float  dist     = length(vec);
@@ -119,7 +166,6 @@ float4 main(PSInput input) : SV_TARGET
     if (useNormalMap > 0.5)
     {
         float3 nTangent = normalMap.Sample(sampler0, finalUV).rgb * 2.0 - 1.0;
-
         float3x3 TBN = float3x3(
             normalize(input.T),
             normalize(input.B),
@@ -132,6 +178,8 @@ float4 main(PSInput input) : SV_TARGET
         N = normalize(input.N);
     }
 
+    float shadow = calcShadowPCF(input.shadowPos, N);
+
     float3 result = baseColor * ambientColor.rgb;
 
     for (int i = 0; i < numLights; ++i)
@@ -141,7 +189,7 @@ float4 main(PSInput input) : SV_TARGET
         int type = (int)lights[i].positionAndType.w;
 
         if (type == LIGHT_DIRECTIONAL)
-            result += calcDirectional(lights[i], N, V, baseColor, specular.rgb);
+            result += calcDirectional(lights[i], N, V, baseColor, specular.rgb, shadow);
         else if (type == LIGHT_POINT)
             result += calcPoint(lights[i], input.worldPos, N, V, baseColor, specular.rgb);
         else if (type == LIGHT_SPOT)

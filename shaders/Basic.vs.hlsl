@@ -6,6 +6,13 @@ cbuffer TransformBuffer : register(b0)
     matrix normalMatrix;
 };
 
+cbuffer ShadowBuffer : register(b3)
+{
+    matrix lightSpaceMatrix;
+    float3 lightDir;
+    float  shadowBias;
+};
+
 struct VSInput
 {
     float3 position : POSITION;
@@ -24,6 +31,7 @@ struct VSOutput
     float3 T          : TEXCOORD2;
     float3 B          : TEXCOORD3;
     float3 N          : TEXCOORD4;
+    float4 shadowPos  : TEXCOORD5;
 };
 
 VSOutput main(VSInput input)
@@ -32,10 +40,11 @@ VSOutput main(VSInput input)
 
     float4 worldPosition = mul(float4(input.position, 1.0f), model);
 
-    output.position = mul(mul(worldPosition, view), projection);
-    output.color    = input.color;
-    output.uv       = input.uv;
-    output.worldPos = worldPosition.xyz;
+    output.position  = mul(mul(worldPosition, view), projection);
+    output.color     = input.color;
+    output.uv        = input.uv;
+    output.worldPos  = worldPosition.xyz;
+    output.shadowPos = mul(worldPosition, lightSpaceMatrix);
 
     float3x3 nm = (float3x3)normalMatrix;
     float3 N = normalize(mul(input.normal,  nm));
