@@ -188,7 +188,7 @@ namespace engine::core {
         );
 
         renderer::CameraDesc camDesc;
-        camDesc.position = { 0.0f, 1.5f, -4.0f };
+        camDesc.position = { 0.0f, 1.5f, -15.0f };
         camDesc.target   = { 0.0f, 0.0f,  0.0f };
         camDesc.up       = { 0.0f, 1.0f,  0.0f };
         camDesc.fovY     = XM_PIDIV4;
