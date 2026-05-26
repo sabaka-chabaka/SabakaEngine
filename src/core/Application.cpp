@@ -394,6 +394,11 @@ namespace engine::core {
                     matData.useNormalMap = (matData.useNormalMap > 0.5f) ? 0.0f : 1.0f;
                     LOG_INFO(matData.useNormalMap > 0.5f ? "Normal map ON" : "Normal map OFF");
                 }
+                if (input.isKeyPressed(Key::F6)) {
+                    m_sceneRT->captureToImage(m_graphics->getDeviceContext(), "sceneRT.bmp");
+                    m_graphics->captureToImage("backbuffer.bmp");
+                    LOG_INFO("Captured sceneRT.bmp and backbuffer.bmp");
+                }
 
                 auto* transform = m_cubeEntity->getComponent<Transform>();
                 transform->rotateEuler(
@@ -493,6 +498,17 @@ namespace engine::core {
                 m_graphics->setDepthFunc(renderer::DepthFunc::Less);
 
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
+
+                {
+                    ID3D11RenderTargetView* rtv = m_sceneRT->getRTV();
+                    ctx->OMSetRenderTargets(1, &rtv, m_sceneRT->getDSV());
+                    D3D11_VIEWPORT vp = {};
+                    vp.Width    = static_cast<float>(m_sceneRT->getWidth());
+                    vp.Height   = static_cast<float>(m_sceneRT->getHeight());
+                    vp.MinDepth = 0.0f;
+                    vp.MaxDepth = 1.0f;
+                    ctx->RSSetViewports(1, &vp);
+                }
 
                 m_shadowPass->getShadowCB()->bindVS(3);
                 m_shadowPass->getShadowCB()->bindPS(3);

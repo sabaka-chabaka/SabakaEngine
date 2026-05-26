@@ -53,21 +53,24 @@ namespace engine::renderer {
     }
 
     void PostProcessPass::renderToBackBuffer(RenderTarget* input, GraphicsDevice* gfx) {
-        gfx->restoreMainTarget();
-        gfx->setDepthWriteEnabled(false);
-        gfx->setDepthFunc(DepthFunc::LessEqual);
-        gfx->setCullMode(CullMode::None);
-        gfx->setBlendMode(BlendMode::Opaque);
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        m_context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+        ID3D11RenderTargetView* backRTV = gfx->getRTV();
+        m_context->OMSetRenderTargets(1, &backRTV, nullptr);
+
+        D3D11_VIEWPORT vp = {};
+        vp.Width    = static_cast<float>(gfx->getWidth());
+        vp.Height   = static_cast<float>(gfx->getHeight());
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
 
         input->bindSRV(m_context, 0);
         m_sampler->bindPS(0);
         m_shader->bind(m_context);
         drawFullscreenTriangle();
         input->unbindSRV(m_context, 0);
-
-        gfx->setDepthWriteEnabled(true);
-        gfx->setDepthFunc(DepthFunc::Less);
-        gfx->setCullMode(CullMode::Back);
     }
 
     void PostProcessPass::drawFullscreenTriangle() {

@@ -9,7 +9,7 @@ namespace engine::math{
 
     void Frustum::buildFromViewProjection(CXMMATRIX vp) {
         XMFLOAT4X4 m;
-        XMStoreFloat4x4(&m, vp);
+        XMStoreFloat4x4(&m, XMMatrixTranspose(vp));
 
         m_planes[0] = normalizePlane(m._14 + m._11, m._24 + m._21, m._34 + m._31, m._44 + m._41);
         m_planes[1] = normalizePlane(m._14 - m._11, m._24 - m._21, m._34 - m._31, m._44 - m._41);
