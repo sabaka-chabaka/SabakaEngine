@@ -1,11 +1,11 @@
-cbuffer ShadowBuffer : register(b0)
+cbuffer ShadowBuffer : register(b3)
 {
     matrix lightSpaceMatrix;
     float3 lightDir;
     float  shadowBias;
 };
 
-cbuffer TransformBuffer : register(b1)
+cbuffer TransformBuffer : register(b0)
 {
     matrix model;
     matrix view;

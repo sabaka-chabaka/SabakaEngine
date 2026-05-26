@@ -59,6 +59,7 @@ namespace engine::renderer {
         ID3D11DepthStencilView*   getDSV()            const;
         int                       getWidth()          const;
         int                       getHeight()         const;
+        void                      captureToImage(const char* filename);
 
     private:
         void createRenderTargetView();

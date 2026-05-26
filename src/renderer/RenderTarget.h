@@ -39,6 +39,7 @@ namespace engine::renderer {
         ID3D11RenderTargetView*   getRTV() const;
         ID3D11DepthStencilView*   getDSV() const;
         ID3D11ShaderResourceView* getSRV() const;
+        void                      captureToImage(ID3D11DeviceContext* context, const char* filename);
 
     private:
         void create(ID3D11Device* device);

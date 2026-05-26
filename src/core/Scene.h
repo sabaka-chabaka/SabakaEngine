@@ -2,6 +2,7 @@
 #include "Entity.h"
 #include "renderer/ConstantBuffer.h"
 #include "renderer/TransformData.h"
+#include "renderer/Camera.h"
 #include <DirectXMath.h>
 #include <memory>
 #include <string>
@@ -27,7 +28,7 @@ namespace engine::core {
 
         void update(float deltaTime);
         void render();
-        void renderDepthOnly(renderer::ConstantBuffer<renderer::TransformData>* transformCB);
+        void renderDepthOnly(renderer::ConstantBuffer<renderer::TransformData>* transformCB, const DirectX::XMMATRIX& lightSpaceMatrix);
 
         const std::vector<std::unique_ptr<Entity>>& getEntities() const;
 

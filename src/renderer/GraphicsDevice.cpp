@@ -1,8 +1,47 @@
 #include "renderer/GraphicsDevice.h"
 #include "core/Logger.h"
 #include <stdexcept>
+#include <fstream>
+#include <vector>
+#include <algorithm>
 
 namespace engine::renderer {
+
+    static void saveBMP(const char* filename, int width, int height, const uint8_t* rgba) {
+        std::ofstream f(filename, std::ios::binary);
+        if (!f) return;
+
+        uint32_t fileSize = 54 + width * height * 3;
+        uint8_t header[54] = {
+            'B', 'M',
+            (uint8_t)(fileSize), (uint8_t)(fileSize >> 8), (uint8_t)(fileSize >> 16), (uint8_t)(fileSize >> 24),
+            0, 0, 0, 0,
+            54, 0, 0, 0,
+            40, 0, 0, 0,
+            (uint8_t)(width), (uint8_t)(width >> 8), (uint8_t)(width >> 16), (uint8_t)(width >> 24),
+            (uint8_t)(height), (uint8_t)(height >> 8), (uint8_t)(height >> 16), (uint8_t)(height >> 24),
+            1, 0,
+            24, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0
+        };
+
+        f.write((char*)header, 54);
+        for (int y = height - 1; y >= 0; --y) {
+            for (int x = 0; x < width; ++x) {
+                const uint8_t* p = &rgba[(y * width + x) * 4];
+                f.put(p[2]); // B
+                f.put(p[1]); // G
+                f.put(p[0]); // R
+            }
+            int padding = (4 - (width * 3) % 4) % 4;
+            for (int i = 0; i < padding; ++i) f.put(0);
+        }
+    }
     GraphicsDevice::GraphicsDevice(const GraphicsDeviceDesc& desc)
         : m_vsync(desc.vsync), m_width(desc.width), m_height(desc.height)
     {
@@ -291,4 +330,35 @@ namespace engine::renderer {
     ID3D11DepthStencilView*  GraphicsDevice::getDSV()           const { return m_depthStencilView.Get(); }
     int                      GraphicsDevice::getWidth()         const { return m_width; }
     int                      GraphicsDevice::getHeight()        const { return m_height; }
+
+    void GraphicsDevice::captureToImage(const char* filename) {
+        ComPtr<ID3D11Texture2D> backBuffer;
+        if (FAILED(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)))) return;
+
+        D3D11_TEXTURE2D_DESC desc;
+        backBuffer->GetDesc(&desc);
+
+        D3D11_TEXTURE2D_DESC stagingDesc = desc;
+        stagingDesc.Usage = D3D11_USAGE_STAGING;
+        stagingDesc.BindFlags = 0;
+        stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        stagingDesc.MiscFlags = 0;
+
+        ComPtr<ID3D11Texture2D> stagingTexture;
+        if (FAILED(m_device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture))) return;
+
+        m_context->CopyResource(stagingTexture.Get(), backBuffer.Get());
+
+        D3D11_MAPPED_SUBRESOURCE mapped;
+        if (FAILED(m_context->Map(stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped))) return;
+
+        std::vector<uint8_t> rgba(desc.Width * desc.Height * 4);
+        const uint8_t* src = (const uint8_t*)mapped.pData;
+        for (uint32_t y = 0; y < desc.Height; ++y) {
+            memcpy(&rgba[y * desc.Width * 4], src + y * mapped.RowPitch, desc.Width * 4);
+        }
+
+        m_context->Unmap(stagingTexture.Get(), 0);
+        saveBMP(filename, desc.Width, desc.Height, rgba.data());
+    }
 }

@@ -2,6 +2,7 @@
 #include "MeshRenderer.h"
 #include "Transform.h"
 #include "SceneNode.h"
+#include "Logger.h"
 #include <DirectXMath.h>
 #include <algorithm>
 
@@ -51,7 +52,7 @@ namespace engine::core {
         }
     }
 
-    void Scene::renderDepthOnly(renderer::ConstantBuffer<renderer::TransformData>* transformCB) {
+    void Scene::renderDepthOnly(renderer::ConstantBuffer<renderer::TransformData>* transformCB, const DirectX::XMMATRIX& lightSpaceMatrix) {
         for (auto& e : m_entities) {
             auto* mr = e->getComponent<MeshRenderer>();
             if (!mr || !mr->getMesh()) continue;
@@ -64,12 +65,12 @@ namespace engine::core {
 
             renderer::TransformData td = {};
             td.model        = XMMatrixTranspose(world);
-            td.view         = XMMatrixIdentity();
+            td.view         = lightSpaceMatrix; // Already transposed in ShadowPass
             td.projection   = XMMatrixIdentity();
             td.normalMatrix = XMMatrixIdentity();
 
             transformCB->update(td);
-            transformCB->bindVS(1);
+            transformCB->bindVS(0);
 
             mr->getMesh()->draw();
         }

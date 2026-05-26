@@ -56,29 +56,16 @@ namespace engine::renderer {
             m_desc.nearZ, m_desc.farZ
         );
 
-        m_shadowData.lightSpaceMatrix = lightView * lightProj;
+        m_shadowData.lightSpaceMatrix = XMMatrixTranspose(lightView * lightProj);
         XMStoreFloat3(&m_shadowData.lightDir, dir);
         m_shadowData.shadowBias = m_desc.dynamicBias;
 
         m_shadowCB->update(m_shadowData);
 
         m_shadowMap->bindAsTarget(m_context);
-        m_context->RSSetState(m_shadowRasterizer.Get());
-
-        LOG_TRACE("Shadow pass begin");
     }
 
     void ShadowPass::end(GraphicsDevice* gfx, int viewportWidth, int viewportHeight) {
-        m_context->RSSetState(nullptr);
-
-        D3D11_VIEWPORT vp = {};
-        vp.Width    = static_cast<float>(viewportWidth);
-        vp.Height   = static_cast<float>(viewportHeight);
-        vp.MinDepth = 0.0f;
-        vp.MaxDepth = 1.0f;
-        m_context->RSSetViewports(1, &vp);
-
-        LOG_TRACE("Shadow pass end");
     }
 
     ConstantBuffer<ShadowData>* ShadowPass::getShadowCB() {

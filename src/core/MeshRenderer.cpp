@@ -4,6 +4,7 @@
 #include "core/SceneNode.h"
 #include "core/BoundingBoxComponent.h"
 #include "core/LodComponent.h"
+#include "core/Logger.h"
 #include <DirectXMath.h>
 
 using namespace DirectX;

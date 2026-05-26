@@ -1,8 +1,47 @@
-#include "RenderTarget.h"
+#include "renderer/RenderTarget.h"
 #include "core/Logger.h"
 #include <stdexcept>
+#include <fstream>
+#include <vector>
+#include <algorithm>
 
 namespace engine::renderer {
+
+    static void saveBMP(const char* filename, int width, int height, const uint8_t* rgba) {
+        std::ofstream f(filename, std::ios::binary);
+        if (!f) return;
+
+        uint32_t fileSize = 54 + width * height * 3;
+        uint8_t header[54] = {
+            'B', 'M',
+            (uint8_t)(fileSize), (uint8_t)(fileSize >> 8), (uint8_t)(fileSize >> 16), (uint8_t)(fileSize >> 24),
+            0, 0, 0, 0,
+            54, 0, 0, 0,
+            40, 0, 0, 0,
+            (uint8_t)(width), (uint8_t)(width >> 8), (uint8_t)(width >> 16), (uint8_t)(width >> 24),
+            (uint8_t)(height), (uint8_t)(height >> 8), (uint8_t)(height >> 16), (uint8_t)(height >> 24),
+            1, 0,
+            24, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0
+        };
+
+        f.write((char*)header, 54);
+        for (int y = height - 1; y >= 0; --y) {
+            for (int x = 0; x < width; ++x) {
+                const uint8_t* p = &rgba[(y * width + x) * 4];
+                f.put(p[2]); // B
+                f.put(p[1]); // G
+                f.put(p[0]); // R
+            }
+            int padding = (4 - (width * 3) % 4) % 4;
+            for (int i = 0; i < padding; ++i) f.put(0);
+        }
+    }
 
     static DXGI_FORMAT toDXGI(RenderTargetFormat fmt) {
         switch (fmt) {
@@ -107,4 +146,56 @@ namespace engine::renderer {
     ID3D11RenderTargetView*   RenderTarget::getRTV()    const { return m_rtv.Get(); }
     ID3D11DepthStencilView*   RenderTarget::getDSV()    const { return m_dsv.Get(); }
     ID3D11ShaderResourceView* RenderTarget::getSRV()    const { return m_srv.Get(); }
+
+    void RenderTarget::captureToImage(ID3D11DeviceContext* context, const char* filename) {
+        D3D11_TEXTURE2D_DESC desc;
+        m_texture->GetDesc(&desc);
+
+        D3D11_TEXTURE2D_DESC stagingDesc = desc;
+        stagingDesc.Usage = D3D11_USAGE_STAGING;
+        stagingDesc.BindFlags = 0;
+        stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        stagingDesc.MiscFlags = 0;
+
+        ComPtr<ID3D11Device> device;
+        context->GetDevice(&device);
+
+        ComPtr<ID3D11Texture2D> stagingTexture;
+        if (FAILED(device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture))) return;
+
+        context->CopyResource(stagingTexture.Get(), m_texture.Get());
+
+        D3D11_MAPPED_SUBRESOURCE mapped;
+        if (FAILED(context->Map(stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped))) return;
+
+        std::vector<uint8_t> rgba(desc.Width * desc.Height * 4);
+        const uint8_t* src = (const uint8_t*)mapped.pData;
+
+        if (desc.Format == DXGI_FORMAT_R16G16B16A16_FLOAT) {
+            for (uint32_t y = 0; y < desc.Height; ++y) {
+                for (uint32_t x = 0; x < desc.Width; ++x) {
+                    const uint16_t* p = (const uint16_t*)(src + y * mapped.RowPitch + x * 8);
+                    auto h2f = [](uint16_t h) {
+                        uint32_t s = (h >> 15) & 0x0001;
+                        uint32_t e = (h >> 10) & 0x001f;
+                        uint32_t m = h & 0x03ff;
+                        if (e == 0) return 0.0f;
+                        if (e == 31) return 1.0f;
+                        return (s ? -1.0f : 1.0f) * powf(2.0f, (float)e - 15.0f) * (1.0f + (float)m / 1024.0f);
+                    };
+                    rgba[(y * desc.Width + x) * 4 + 0] = (uint8_t)(std::clamp(h2f(p[0]), 0.0f, 1.0f) * 255.0f);
+                    rgba[(y * desc.Width + x) * 4 + 1] = (uint8_t)(std::clamp(h2f(p[1]), 0.0f, 1.0f) * 255.0f);
+                    rgba[(y * desc.Width + x) * 4 + 2] = (uint8_t)(std::clamp(h2f(p[2]), 0.0f, 1.0f) * 255.0f);
+                    rgba[(y * desc.Width + x) * 4 + 3] = 255;
+                }
+            }
+        } else if (desc.Format == DXGI_FORMAT_R8G8B8A8_UNORM) {
+            for (uint32_t y = 0; y < desc.Height; ++y) {
+                memcpy(&rgba[y * desc.Width * 4], src + y * mapped.RowPitch, desc.Width * 4);
+            }
+        }
+
+        context->Unmap(stagingTexture.Get(), 0);
+        saveBMP(filename, desc.Width, desc.Height, rgba.data());
+    }
 }
