@@ -33,6 +33,7 @@ namespace engine::renderer {
         GraphicsDevice &operator=(const GraphicsDevice &) = delete;
 
         void beginFrame(float r, float g, float b);
+        void restoreMainTarget();
 
         void endFrame();
 

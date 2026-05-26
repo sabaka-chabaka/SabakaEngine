@@ -207,6 +207,18 @@ namespace engine::renderer {
         m_context->RSSetViewports(1, &vp);
     }
 
+    void GraphicsDevice::restoreMainTarget() {
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        m_context->OMSetRenderTargets(1, &nullRTV, nullptr);
+        m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
+        D3D11_VIEWPORT vp = {};
+        vp.Width    = static_cast<float>(m_width);
+        vp.Height   = static_cast<float>(m_height);
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
+    }
+
     void GraphicsDevice::endFrame() {
         m_swapChain->Present(m_vsync ? 1 : 0, 0);
     }
