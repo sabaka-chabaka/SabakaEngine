@@ -74,8 +74,8 @@
 
 ### Блок 7 — Постпроцессинг
 ```
-[ ] 49. Render To Texture (рендерить сцену в текстуру)
-[ ] 50. Fullscreen Quad (квад для постэффектов)
+[✓] 49. Render To Texture (рендерить сцену в текстуру)
+[✓] 50. Fullscreen Quad (квад для постэффектов)
 [ ] 51. Gamma Correction (линейное → sRGB)
 [ ] 52. Tone Mapping (HDR → LDR, Reinhard / ACES)
 [ ] 53. FXAA (быстрое сглаживание пост-процессом)

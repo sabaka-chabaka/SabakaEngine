@@ -31,7 +31,7 @@ namespace engine::core {
         LOG_INFO("Initializing SabakaEngine");
 
         platform::WindowDesc wDesc;
-        wDesc.title = L"SabakaEngine v0.4";
+        wDesc.title = L"SabakaEngine v0.7";
         wDesc.width = 1280;
         wDesc.height = 720;
 
@@ -206,6 +206,9 @@ namespace engine::core {
             m_graphics->onResize(w, h);
             if (m_camera && h > 0)
                 m_camera->setAspectRatio(static_cast<float>(w) / static_cast<float>(h));
+            if (m_sceneRT && w > 0 && h > 0)
+                m_sceneRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
         });
 
         LOG_DEBUG("Creating depth pre-pass...");
@@ -243,6 +246,21 @@ namespace engine::core {
 
         LOG_DEBUG("Creating shadow sampler...");
         m_shadowSampler = std::make_unique<renderer::ShadowSampler>(m_graphics->getDevice());
+
+        LOG_DEBUG("Creating scene render target...");
+        renderer::RenderTargetDesc rtDesc;
+        rtDesc.width    = static_cast<uint32_t>(m_window->getWidth());
+        rtDesc.height   = static_cast<uint32_t>(m_window->getHeight());
+        rtDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
+        rtDesc.hasDepth = true;
+        m_sceneRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), rtDesc);
+
+        LOG_DEBUG("Creating blit pass...");
+        m_blitPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            L"shaders/Blit.ps.hlsl"
+        );
 
         LOG_DEBUG("Creating scene...");
         m_scene     = std::make_unique<Scene>();
@@ -393,14 +411,27 @@ namespace engine::core {
                 m_scene->update(deltaTime);
                 onUpdate(deltaTime);
 
+                auto* ctx = m_graphics->getDeviceContext();
+
                 m_shadowPass->begin(m_graphics.get(), directionalDir, sceneCenter);
-                m_shadowShader->bind(m_graphics->getDeviceContext());
+                m_shadowShader->bind(ctx);
                 m_shadowPass->getShadowCB()->bindVS(0);
-                m_transformCB->bindVS(1);
-                m_scene->render();
+                m_scene->renderDepthOnly(m_transformCB.get());
                 m_shadowPass->end(m_graphics.get(), m_window->getWidth(), m_window->getHeight());
 
-                m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
+                {
+                    ID3D11RenderTargetView* rtv = m_sceneRT->getRTV();
+                    ctx->OMSetRenderTargets(1, &rtv, m_sceneRT->getDSV());
+                    float color[4] = { 0.08f, 0.08f, 0.12f, 1.0f };
+                    ctx->ClearRenderTargetView(rtv, color);
+                    ctx->ClearDepthStencilView(m_sceneRT->getDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+                    D3D11_VIEWPORT vp = {};
+                    vp.Width    = static_cast<float>(m_sceneRT->getWidth());
+                    vp.Height   = static_cast<float>(m_sceneRT->getHeight());
+                    vp.MinDepth = 0.0f;
+                    vp.MaxDepth = 1.0f;
+                    ctx->RSSetViewports(1, &vp);
+                }
 
                 m_graphics->setDepthWriteEnabled(false);
                 m_graphics->setDepthFunc(renderer::DepthFunc::LessEqual);
@@ -420,13 +451,12 @@ namespace engine::core {
 
                     m_skyboxCB->update(sd);
 
-                    m_skyboxShader->bind(m_graphics->getDeviceContext());
+                    m_skyboxShader->bind(ctx);
                     m_skyboxCB->bindVS(0);
                     m_skyboxCB->bindPS(0);
                     m_skyboxTexture->bindPS(0);
                     m_skyboxSampler->bindPS(0);
 
-                    auto* ctx = m_graphics->getDeviceContext();
                     ctx->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
                     ctx->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
                     ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -435,28 +465,21 @@ namespace engine::core {
 
                 m_graphics->setCullMode(renderer::CullMode::None);
                 m_graphics->setDepthClipEnabled(true);
-
-                m_depthPrePass->begin(m_graphics.get());
-                m_scene->render();
-                m_depthPrePass->end(m_graphics.get());
-
-                m_graphics->setBlendMode(renderer::BlendMode::Opaque);
-                m_graphics->setDepthWriteEnabled(false);
-
-                m_occlusionQuery->begin(m_graphics->getDeviceContext());
+                m_graphics->setDepthWriteEnabled(true);
+                m_graphics->setDepthFunc(renderer::DepthFunc::Less);
 
                 m_shadowPass->getShadowCB()->bindVS(3);
                 m_shadowPass->getShadowCB()->bindPS(3);
-                m_shadowMap->bindAsResource(m_graphics->getDeviceContext(), 3);
-                m_shadowSampler->bindPS(m_graphics->getDeviceContext(), 1);
+                m_shadowMap->bindAsResource(ctx, 3);
+                m_shadowSampler->bindPS(ctx, 1);
 
+                m_occlusionQuery->begin(ctx);
                 m_scene->render();
+                m_occlusionQuery->end(ctx);
 
-                m_shadowMap->unbindAsResource(m_graphics->getDeviceContext(), 3);
-                m_occlusionQuery->end(m_graphics->getDeviceContext());
+                m_shadowMap->unbindAsResource(ctx, 3);
 
-                m_graphics->setDepthWriteEnabled(true);
-                m_graphics->setDepthFunc(renderer::DepthFunc::Less);
+                m_blitPass->renderToBackBuffer(m_sceneRT.get(), m_graphics.get());
 
                 onRender();
                 m_graphics->endFrame();

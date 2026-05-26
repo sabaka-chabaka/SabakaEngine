@@ -1,5 +1,11 @@
 #include "Scene.h"
+#include "MeshRenderer.h"
+#include "Transform.h"
+#include "SceneNode.h"
+#include <DirectXMath.h>
 #include <algorithm>
+
+using namespace DirectX;
 
 namespace engine::core {
 
@@ -42,6 +48,30 @@ namespace engine::core {
     void Scene::render() {
         for (auto& e : m_entities) {
             e->onRender();
+        }
+    }
+
+    void Scene::renderDepthOnly(renderer::ConstantBuffer<renderer::TransformData>* transformCB) {
+        for (auto& e : m_entities) {
+            auto* mr = e->getComponent<MeshRenderer>();
+            if (!mr || !mr->getMesh()) continue;
+
+            XMMATRIX world = XMMatrixIdentity();
+            if (auto* node = e->getComponent<SceneNode>())
+                world = node->getWorldMatrix();
+            else if (auto* t = e->getComponent<Transform>())
+                world = t->getWorldMatrix();
+
+            renderer::TransformData td = {};
+            td.model        = XMMatrixTranspose(world);
+            td.view         = XMMatrixIdentity();
+            td.projection   = XMMatrixIdentity();
+            td.normalMatrix = XMMatrixIdentity();
+
+            transformCB->update(td);
+            transformCB->bindVS(1);
+
+            mr->getMesh()->draw();
         }
     }
 

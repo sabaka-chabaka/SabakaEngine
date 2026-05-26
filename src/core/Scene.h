@@ -1,5 +1,8 @@
 #pragma once
 #include "Entity.h"
+#include "renderer/ConstantBuffer.h"
+#include "renderer/TransformData.h"
+#include <DirectXMath.h>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -19,11 +22,12 @@ namespace engine::core {
         void    destroyEntity(uint64_t id);
         void    destroyEntity(Entity* entity);
 
-        Entity* findById(uint64_t id)             const;
+        Entity* findById(uint64_t id)              const;
         Entity* findByName(const std::string& name) const;
 
         void update(float deltaTime);
         void render();
+        void renderDepthOnly(renderer::ConstantBuffer<renderer::TransformData>* transformCB);
 
         const std::vector<std::unique_ptr<Entity>>& getEntities() const;
 
