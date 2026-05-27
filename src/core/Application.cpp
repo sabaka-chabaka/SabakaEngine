@@ -211,6 +211,12 @@ namespace engine::core {
             if (m_sceneRT && w > 0 && h > 0)
                 m_sceneRT->resize(m_graphics->getDevice(),
                     static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+            if (m_ldrRT && w > 0 && h > 0) {
+                m_ldrRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+                m_fxaaData.texelSizeX = 1.0f / static_cast<float>(w);
+                m_fxaaData.texelSizeY = 1.0f / static_cast<float>(h);
+            }
         });
 
         if (m_window->getWidth() > 0 && m_window->getHeight() > 0) {
@@ -285,7 +291,32 @@ namespace engine::core {
             m_graphics->getDeviceContext()
         );
 
-        LOG_DEBUG("Creating scene...");
+        LOG_DEBUG("Creating LDR render target for FXAA...");
+        {
+            renderer::RenderTargetDesc ldrDesc;
+            ldrDesc.width    = static_cast<uint32_t>(m_window->getWidth());
+            ldrDesc.height   = static_cast<uint32_t>(m_window->getHeight());
+            ldrDesc.format   = renderer::RenderTargetFormat::RGBA8_UNORM;
+            ldrDesc.hasDepth = false;
+            m_ldrRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), ldrDesc);
+        }
+
+        LOG_DEBUG("Creating FXAA pass...");
+        m_fxaaPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext(),
+            L"shaders/FXAA.ps.hlsl"
+        );
+
+        m_fxaaData.texelSizeX = 1.0f / static_cast<float>(m_window->getWidth());
+        m_fxaaData.texelSizeY = 1.0f / static_cast<float>(m_window->getHeight());
+        m_fxaaData.enabled    = 1;
+        m_fxaaData._pad       = 0.0f;
+
+        m_fxaaCB = std::make_unique<renderer::ConstantBuffer<renderer::FXAAData>>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
 
@@ -428,6 +459,10 @@ namespace engine::core {
                     m_postProcessData.exposure = std::max(m_postProcessData.exposure - 0.1f, 0.1f);
                     LOG_INFO("Exposure: " + std::to_string(m_postProcessData.exposure));
                 }
+                if (input.isKeyPressed(Key::F10)) {
+                    m_fxaaData.enabled = m_fxaaData.enabled ? 0 : 1;
+                    LOG_INFO(m_fxaaData.enabled ? "FXAA ON" : "FXAA OFF");
+                }
 
                 auto* transform = m_cubeEntity->getComponent<Transform>();
                 transform->rotateEuler(
@@ -551,7 +586,11 @@ namespace engine::core {
                 m_shadowMap->unbindAsResource(ctx, 3);
                 m_postProcessCB->update(m_postProcessData);
                 m_postProcessCB->bindPS(0);
-                m_blitPass->renderToBackBuffer(m_sceneRT.get(), m_graphics.get());
+                m_blitPass->render(m_sceneRT.get(), m_ldrRT.get(), m_graphics.get());
+
+                m_fxaaCB->update(m_fxaaData);
+                m_fxaaCB->bindPS(0);
+                m_fxaaPass->renderToBackBuffer(m_ldrRT.get(), m_graphics.get());
 
                 onRender();
                 m_graphics->endFrame();

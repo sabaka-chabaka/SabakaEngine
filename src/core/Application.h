@@ -21,6 +21,7 @@
 #include "renderer/RenderTarget.h"
 #include "renderer/PostProcessPass.h"
 #include "renderer/PostProcessBuffer.h"
+#include "renderer/FXAABuffer.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -75,6 +76,11 @@ namespace engine::core {
         std::unique_ptr<renderer::PostProcessPass>                                    m_blitPass;
         std::unique_ptr<renderer::ConstantBuffer<renderer::PostProcessData>>          m_postProcessCB;
         renderer::PostProcessData                                                     m_postProcessData;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_ldrRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_fxaaPass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::FXAAData>>                 m_fxaaCB;
+        renderer::FXAAData                                                            m_fxaaData;
 
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
