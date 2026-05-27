@@ -486,6 +486,8 @@ namespace engine::core {
         m_ssaoBlurData._pad            = 0.0f;
         m_ssaoBlurCB = std::make_unique<renderer::ConstantBuffer<renderer::SSAOBlurData>>(
             m_graphics->getDevice(), m_graphics->getDeviceContext());
+
+        m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
 
         m_cubeEntity = m_scene->createEntity("Cube");
