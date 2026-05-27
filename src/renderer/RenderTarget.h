@@ -14,10 +14,11 @@ namespace engine::renderer {
     };
 
     struct RenderTargetDesc {
-        uint32_t           width    = 1280;
-        uint32_t           height   = 720;
-        RenderTargetFormat format   = RenderTargetFormat::RGBA16_FLOAT;
-        bool               hasDepth = false;
+        uint32_t           width       = 1280;
+        uint32_t           height      = 720;
+        RenderTargetFormat format      = RenderTargetFormat::RGBA16_FLOAT;
+        bool               hasDepth    = false;
+        uint32_t           sampleCount = 1;
     };
 
     class RenderTarget {
@@ -31,10 +32,13 @@ namespace engine::renderer {
         void bindSRV(ID3D11DeviceContext* context, uint32_t slot);
         void unbindSRV(ID3D11DeviceContext* context, uint32_t slot);
 
+        void resolveInto(ID3D11DeviceContext* context, RenderTarget* dest);
+
         void resize(ID3D11Device* device, uint32_t width, uint32_t height);
 
-        uint32_t getWidth()  const;
-        uint32_t getHeight() const;
+        uint32_t getWidth()      const;
+        uint32_t getHeight()     const;
+        bool     isMSAA()        const;
 
         ID3D11RenderTargetView*   getRTV() const;
         ID3D11DepthStencilView*   getDSV() const;

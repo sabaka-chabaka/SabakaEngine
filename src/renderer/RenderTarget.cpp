@@ -64,54 +64,77 @@ namespace engine::renderer {
     void RenderTarget::create(ID3D11Device* device) {
         DXGI_FORMAT fmt = toDXGI(m_desc.format);
 
+        UINT sampleCount   = m_desc.sampleCount > 1 ? m_desc.sampleCount : 1;
+        UINT sampleQuality = 0;
+        if (sampleCount > 1) {
+            UINT levels = 0;
+            device->CheckMultisampleQualityLevels(fmt, sampleCount, &levels);
+            if (levels == 0) {
+                LOG_DEBUG("MSAA x" + std::to_string(sampleCount) + " not supported for this format, falling back to 1x");
+                sampleCount = 1;
+            } else {
+                sampleQuality = levels - 1;
+            }
+        }
+
         D3D11_TEXTURE2D_DESC texDesc = {};
-        texDesc.Width            = m_desc.width;
-        texDesc.Height           = m_desc.height;
-        texDesc.MipLevels        = 1;
-        texDesc.ArraySize        = 1;
-        texDesc.Format           = fmt;
-        texDesc.SampleDesc.Count = 1;
-        texDesc.Usage            = D3D11_USAGE_DEFAULT;
-        texDesc.BindFlags        = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+        texDesc.Width              = m_desc.width;
+        texDesc.Height             = m_desc.height;
+        texDesc.MipLevels          = 1;
+        texDesc.ArraySize          = 1;
+        texDesc.Format             = fmt;
+        texDesc.SampleDesc.Count   = sampleCount;
+        texDesc.SampleDesc.Quality = sampleQuality;
+        texDesc.Usage              = D3D11_USAGE_DEFAULT;
+        texDesc.BindFlags          = D3D11_BIND_RENDER_TARGET;
+        if (sampleCount == 1)
+            texDesc.BindFlags     |= D3D11_BIND_SHADER_RESOURCE;
 
         if (FAILED(device->CreateTexture2D(&texDesc, nullptr, &m_texture)))
             throw std::runtime_error("RenderTarget: failed to create texture");
 
         D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-        rtvDesc.Format             = fmt;
-        rtvDesc.ViewDimension      = D3D11_RTV_DIMENSION_TEXTURE2D;
-        rtvDesc.Texture2D.MipSlice = 0;
+        rtvDesc.Format        = fmt;
+        rtvDesc.ViewDimension = (sampleCount > 1) ? D3D11_RTV_DIMENSION_TEXTURE2DMS
+                                                  : D3D11_RTV_DIMENSION_TEXTURE2D;
+        if (sampleCount == 1)
+            rtvDesc.Texture2D.MipSlice = 0;
 
         if (FAILED(device->CreateRenderTargetView(m_texture.Get(), &rtvDesc, &m_rtv)))
             throw std::runtime_error("RenderTarget: failed to create RTV");
 
-        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format                    = fmt;
-        srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-        srvDesc.Texture2D.MipLevels       = 1;
+        if (sampleCount == 1) {
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format                    = fmt;
+            srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            srvDesc.Texture2D.MipLevels       = 1;
 
-        if (FAILED(device->CreateShaderResourceView(m_texture.Get(), &srvDesc, &m_srv)))
-            throw std::runtime_error("RenderTarget: failed to create SRV");
+            if (FAILED(device->CreateShaderResourceView(m_texture.Get(), &srvDesc, &m_srv)))
+                throw std::runtime_error("RenderTarget: failed to create SRV");
+        }
 
         if (m_desc.hasDepth) {
             D3D11_TEXTURE2D_DESC depthDesc = {};
-            depthDesc.Width            = m_desc.width;
-            depthDesc.Height           = m_desc.height;
-            depthDesc.MipLevels        = 1;
-            depthDesc.ArraySize        = 1;
-            depthDesc.Format           = DXGI_FORMAT_D24_UNORM_S8_UINT;
-            depthDesc.SampleDesc.Count = 1;
-            depthDesc.Usage            = D3D11_USAGE_DEFAULT;
-            depthDesc.BindFlags        = D3D11_BIND_DEPTH_STENCIL;
+            depthDesc.Width              = m_desc.width;
+            depthDesc.Height             = m_desc.height;
+            depthDesc.MipLevels          = 1;
+            depthDesc.ArraySize          = 1;
+            depthDesc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            depthDesc.SampleDesc.Count   = sampleCount;
+            depthDesc.SampleDesc.Quality = sampleQuality;
+            depthDesc.Usage              = D3D11_USAGE_DEFAULT;
+            depthDesc.BindFlags          = D3D11_BIND_DEPTH_STENCIL;
 
             if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &m_depthTexture)))
                 throw std::runtime_error("RenderTarget: failed to create depth texture");
 
             D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-            dsvDesc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
-            dsvDesc.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2D;
-            dsvDesc.Texture2D.MipSlice = 0;
+            dsvDesc.Format        = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            dsvDesc.ViewDimension = (sampleCount > 1) ? D3D11_DSV_DIMENSION_TEXTURE2DMS
+                                                      : D3D11_DSV_DIMENSION_TEXTURE2D;
+            if (sampleCount == 1)
+                dsvDesc.Texture2D.MipSlice = 0;
 
             if (FAILED(device->CreateDepthStencilView(m_depthTexture.Get(), &dsvDesc, &m_dsv)))
                 throw std::runtime_error("RenderTarget: failed to create DSV");
@@ -133,6 +156,11 @@ namespace engine::renderer {
         context->PSSetShaderResources(slot, 1, &null);
     }
 
+    void RenderTarget::resolveInto(ID3D11DeviceContext* context, RenderTarget* dest) {
+        DXGI_FORMAT fmt = toDXGI(m_desc.format);
+        context->ResolveSubresource(dest->m_texture.Get(), 0, m_texture.Get(), 0, fmt);
+    }
+
     void RenderTarget::resize(ID3D11Device* device, uint32_t width, uint32_t height) {
         LOG_DEBUG("Resizing render target to " + std::to_string(width) + "x" + std::to_string(height));
         m_desc.width  = width;
@@ -143,6 +171,7 @@ namespace engine::renderer {
 
     uint32_t                  RenderTarget::getWidth()  const { return m_desc.width; }
     uint32_t                  RenderTarget::getHeight() const { return m_desc.height; }
+    bool                      RenderTarget::isMSAA()    const { return m_desc.sampleCount > 1; }
     ID3D11RenderTargetView*   RenderTarget::getRTV()    const { return m_rtv.Get(); }
     ID3D11DepthStencilView*   RenderTarget::getDSV()    const { return m_dsv.Get(); }
     ID3D11ShaderResourceView* RenderTarget::getSRV()    const { return m_srv.Get(); }
