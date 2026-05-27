@@ -22,6 +22,8 @@
 #include "renderer/PostProcessPass.h"
 #include "renderer/PostProcessBuffer.h"
 #include "renderer/FXAABuffer.h"
+#include "renderer/BloomBuffer.h"
+#include "renderer/SSAOBuffer.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -83,6 +85,35 @@ namespace engine::core {
         std::unique_ptr<renderer::PostProcessPass>                                    m_fxaaPass;
         std::unique_ptr<renderer::ConstantBuffer<renderer::FXAAData>>                 m_fxaaCB;
         renderer::FXAAData                                                            m_fxaaData;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_normalsRT;
+        std::unique_ptr<renderer::RenderTarget>                                       m_bloomBrightRT;
+        std::unique_ptr<renderer::RenderTarget>                                       m_bloomBlurHRT;
+        std::unique_ptr<renderer::RenderTarget>                                       m_bloomBlurRT;
+        std::unique_ptr<renderer::RenderTarget>                                       m_bloomCompositeRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_bloomBrightPass;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_bloomBlurHPass;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_bloomBlurVPass;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_bloomCompositePass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::BloomData>>                m_bloomCB;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::BlurData>>                 m_blurCB;
+        renderer::BloomData                                                           m_bloomData;
+        renderer::BlurData                                                            m_blurData;
+        bool                                                                          m_bloomEnabled = true;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_ssaoRT;
+        std::unique_ptr<renderer::RenderTarget>                                       m_ssaoBlurRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_ssaoPass;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_ssaoBlurPass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::SSAOData>>                 m_ssaoCB;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::SSAOBlurData>>             m_ssaoBlurCB;
+        renderer::SSAOData                                                            m_ssaoData;
+        renderer::SSAOBlurData                                                        m_ssaoBlurData;
+        bool                                                                          m_ssaoEnabled = true;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>                                       m_ssaoNoiseTex;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>                              m_ssaoNoiseSRV;
+        std::unique_ptr<renderer::SamplerState>                                       m_ssaoNoiseSampler;
+        std::unique_ptr<renderer::SamplerState>                                       m_ssaoClampSampler;
 
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;

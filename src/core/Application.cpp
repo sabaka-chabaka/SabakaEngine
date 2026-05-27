@@ -220,6 +220,25 @@ namespace engine::core {
                 m_fxaaData.texelSizeX = 1.0f / static_cast<float>(w);
                 m_fxaaData.texelSizeY = 1.0f / static_cast<float>(h);
             }
+            if (m_normalsRT && w > 0 && h > 0)
+                m_normalsRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+            if (m_bloomBrightRT && w > 0 && h > 0) {
+                m_bloomBrightRT->resize(m_graphics->getDevice(), static_cast<uint32_t>(w) / 2, static_cast<uint32_t>(h) / 2);
+                m_bloomBlurHRT->resize(m_graphics->getDevice(),  static_cast<uint32_t>(w) / 2, static_cast<uint32_t>(h) / 2);
+                m_bloomBlurRT->resize(m_graphics->getDevice(),   static_cast<uint32_t>(w) / 2, static_cast<uint32_t>(h) / 2);
+                m_bloomCompositeRT->resize(m_graphics->getDevice(), static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+                m_blurData.texelSizeX = 2.0f / static_cast<float>(w);
+                m_blurData.texelSizeY = 2.0f / static_cast<float>(h);
+            }
+            if (m_ssaoRT && w > 0 && h > 0) {
+                m_ssaoRT->resize(m_graphics->getDevice(),     static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+                m_ssaoBlurRT->resize(m_graphics->getDevice(), static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+                m_ssaoData.noiseScaleX = static_cast<float>(w) / static_cast<float>(renderer::SSAO_NOISE_SIZE);
+                m_ssaoData.noiseScaleY = static_cast<float>(h) / static_cast<float>(renderer::SSAO_NOISE_SIZE);
+                m_ssaoBlurData.texelSizeX = 1.0f / static_cast<float>(w);
+                m_ssaoBlurData.texelSizeY = 1.0f / static_cast<float>(h);
+            }
         });
 
         if (m_window->getWidth() > 0 && m_window->getHeight() > 0) {
@@ -332,7 +351,141 @@ namespace engine::core {
             m_graphics->getDevice(),
             m_graphics->getDeviceContext()
         );
-        m_scene     = std::make_unique<Scene>();
+
+        uint32_t w = static_cast<uint32_t>(m_window->getWidth());
+        uint32_t h = static_cast<uint32_t>(m_window->getHeight());
+
+        LOG_DEBUG("Creating normals render target...");
+        {
+            renderer::RenderTargetDesc normDesc;
+            normDesc.width    = w;
+            normDesc.height   = h;
+            normDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            normDesc.hasDepth = false;
+            m_normalsRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), normDesc);
+        }
+
+        LOG_DEBUG("Creating bloom render targets...");
+        {
+            renderer::RenderTargetDesc bloomDesc;
+            bloomDesc.width    = w / 2;
+            bloomDesc.height   = h / 2;
+            bloomDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            bloomDesc.hasDepth = false;
+            m_bloomBrightRT     = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), bloomDesc);
+            m_bloomBlurHRT      = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), bloomDesc);
+            m_bloomBlurRT       = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), bloomDesc);
+        }
+        {
+            renderer::RenderTargetDesc compDesc;
+            compDesc.width    = w;
+            compDesc.height   = h;
+            compDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            compDesc.hasDepth = false;
+            m_bloomCompositeRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), compDesc);
+        }
+
+        LOG_DEBUG("Creating bloom passes...");
+        m_bloomBrightPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/BloomBright.ps.hlsl");
+        m_bloomBlurHPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/BloomBlur.ps.hlsl");
+        m_bloomBlurVPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/BloomBlur.ps.hlsl");
+        m_bloomCompositePass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/BloomComposite.ps.hlsl");
+
+        m_bloomData.threshold   = 1.0f;
+        m_bloomData.intensity   = 0.5f;
+        m_bloomData.ssaoEnabled = 1.0f;
+        m_bloomData._pad        = 0.0f;
+        m_bloomCB = std::make_unique<renderer::ConstantBuffer<renderer::BloomData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
+
+        m_blurData.texelSizeX = 2.0f / static_cast<float>(w);
+        m_blurData.texelSizeY = 2.0f / static_cast<float>(h);
+        m_blurData.horizontal = 1;
+        m_blurData._pad       = 0.0f;
+        m_blurCB = std::make_unique<renderer::ConstantBuffer<renderer::BlurData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
+
+        LOG_DEBUG("Creating SSAO render targets...");
+        {
+            renderer::RenderTargetDesc ssaoDesc;
+            ssaoDesc.width    = w;
+            ssaoDesc.height   = h;
+            ssaoDesc.format   = renderer::RenderTargetFormat::RGBA8_UNORM;
+            ssaoDesc.hasDepth = false;
+            m_ssaoRT     = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), ssaoDesc);
+            m_ssaoBlurRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), ssaoDesc);
+        }
+
+        LOG_DEBUG("Creating SSAO passes...");
+        m_ssaoPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/SSAO.ps.hlsl");
+        m_ssaoBlurPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/SSAOBlur.ps.hlsl");
+
+        LOG_DEBUG("Generating SSAO noise texture...");
+        {
+            auto noise = renderer::generateSSAONoise();
+            D3D11_TEXTURE2D_DESC noiseDesc = {};
+            noiseDesc.Width            = renderer::SSAO_NOISE_SIZE;
+            noiseDesc.Height           = renderer::SSAO_NOISE_SIZE;
+            noiseDesc.MipLevels        = 1;
+            noiseDesc.ArraySize        = 1;
+            noiseDesc.Format           = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            noiseDesc.SampleDesc.Count = 1;
+            noiseDesc.Usage            = D3D11_USAGE_DEFAULT;
+            noiseDesc.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+            D3D11_SUBRESOURCE_DATA noiseInit = {};
+            noiseInit.pSysMem          = noise.data();
+            noiseInit.SysMemPitch      = renderer::SSAO_NOISE_SIZE * sizeof(DirectX::XMFLOAT4);
+            if (FAILED(m_graphics->getDevice()->CreateTexture2D(&noiseDesc, &noiseInit, &m_ssaoNoiseTex)))
+                throw std::runtime_error("Failed to create SSAO noise texture");
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format                    = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            srvDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels       = 1;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            if (FAILED(m_graphics->getDevice()->CreateShaderResourceView(m_ssaoNoiseTex.Get(), &srvDesc, &m_ssaoNoiseSRV)))
+                throw std::runtime_error("Failed to create SSAO noise SRV");
+        }
+
+        {
+            renderer::SamplerDesc wrapDesc;
+            wrapDesc.filter = renderer::FilterMode::Point;
+            wrapDesc.wrapU  = renderer::WrapMode::Repeat;
+            wrapDesc.wrapV  = renderer::WrapMode::Repeat;
+            m_ssaoNoiseSampler = std::make_unique<renderer::SamplerState>(
+                m_graphics->getDevice(), m_graphics->getDeviceContext(), wrapDesc);
+            renderer::SamplerDesc clampDesc;
+            clampDesc.filter = renderer::FilterMode::Point;
+            clampDesc.wrapU  = renderer::WrapMode::Clamp;
+            clampDesc.wrapV  = renderer::WrapMode::Clamp;
+            m_ssaoClampSampler = std::make_unique<renderer::SamplerState>(
+                m_graphics->getDevice(), m_graphics->getDeviceContext(), clampDesc);
+        }
+
+        {
+            auto sampleArr = renderer::generateSSAOSamples();
+            m_ssaoData.radius     = 0.5f;
+            m_ssaoData.bias       = 0.025f;
+            m_ssaoData.numSamples = renderer::SSAO_NUM_SAMPLES;
+            m_ssaoData.noiseScaleX = static_cast<float>(w) / static_cast<float>(renderer::SSAO_NOISE_SIZE);
+            m_ssaoData.noiseScaleY = static_cast<float>(h) / static_cast<float>(renderer::SSAO_NOISE_SIZE);
+            for (int i = 0; i < 64; ++i)
+                m_ssaoData.samples[i] = sampleArr[i];
+            m_ssaoCB = std::make_unique<renderer::ConstantBuffer<renderer::SSAOData>>(
+                m_graphics->getDevice(), m_graphics->getDeviceContext());
+        }
+
+        m_ssaoBlurData.texelSizeX      = 1.0f / static_cast<float>(w);
+        m_ssaoBlurData.texelSizeY      = 1.0f / static_cast<float>(h);
+        m_ssaoBlurData.depthThreshold  = 0.01f;
+        m_ssaoBlurData._pad            = 0.0f;
+        m_ssaoBlurCB = std::make_unique<renderer::ConstantBuffer<renderer::SSAOBlurData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
         m_hierarchy = std::make_unique<SceneHierarchy>();
 
         m_cubeEntity = m_scene->createEntity("Cube");
@@ -482,6 +635,22 @@ namespace engine::core {
                     m_msaaEnabled = !m_msaaEnabled;
                     LOG_INFO(m_msaaEnabled ? "MSAA 4x ON" : "MSAA OFF");
                 }
+                if (input.isKeyPressed(Key::F12)) {
+                    m_bloomEnabled = !m_bloomEnabled;
+                    LOG_INFO(m_bloomEnabled ? "Bloom ON" : "Bloom OFF");
+                }
+                if (input.isKeyPressed(Key::B)) {
+                    m_ssaoEnabled = !m_ssaoEnabled;
+                    LOG_INFO(m_ssaoEnabled ? "SSAO ON" : "SSAO OFF");
+                }
+                if (input.isKeyPressed(Key::N)) {
+                    m_bloomData.intensity = std::min(m_bloomData.intensity + 0.1f, 3.0f);
+                    LOG_INFO("Bloom intensity: " + std::to_string(m_bloomData.intensity));
+                }
+                if (input.isKeyPressed(Key::M)) {
+                    m_bloomData.intensity = std::max(m_bloomData.intensity - 0.1f, 0.0f);
+                    LOG_INFO("Bloom intensity: " + std::to_string(m_bloomData.intensity));
+                }
 
                 auto* transform = m_cubeEntity->getComponent<Transform>();
                 transform->rotateEuler(
@@ -533,10 +702,12 @@ namespace engine::core {
 
                 {
                     renderer::RenderTarget* activeRT = m_msaaEnabled ? m_msaaRT.get() : m_sceneRT.get();
-                    ID3D11RenderTargetView* rtv = activeRT->getRTV();
-                    ctx->OMSetRenderTargets(1, &rtv, activeRT->getDSV());
+                    ID3D11RenderTargetView* rtvs[2] = { activeRT->getRTV(), m_normalsRT->getRTV() };
+                    ctx->OMSetRenderTargets(2, rtvs, activeRT->getDSV());
                     float color[4] = { 0.08f, 0.08f, 0.12f, 1.0f };
-                    ctx->ClearRenderTargetView(rtv, color);
+                    float black[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+                    ctx->ClearRenderTargetView(rtvs[0], color);
+                    ctx->ClearRenderTargetView(rtvs[1], black);
                     ctx->ClearDepthStencilView(activeRT->getDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
                     D3D11_VIEWPORT vp = {};
                     vp.Width    = static_cast<float>(activeRT->getWidth());
@@ -585,8 +756,8 @@ namespace engine::core {
 
                 {
                     renderer::RenderTarget* activeRT = m_msaaEnabled ? m_msaaRT.get() : m_sceneRT.get();
-                    ID3D11RenderTargetView* rtv = activeRT->getRTV();
-                    ctx->OMSetRenderTargets(1, &rtv, activeRT->getDSV());
+                    ID3D11RenderTargetView* rtvs[2] = { activeRT->getRTV(), m_normalsRT->getRTV() };
+                    ctx->OMSetRenderTargets(2, rtvs, activeRT->getDSV());
                     D3D11_VIEWPORT vp = {};
                     vp.Width    = static_cast<float>(activeRT->getWidth());
                     vp.Height   = static_cast<float>(activeRT->getHeight());
@@ -609,9 +780,64 @@ namespace engine::core {
                 if (m_msaaEnabled)
                     m_msaaRT->resolveInto(ctx, m_sceneRT.get());
 
+                if (m_ssaoEnabled) {
+                    m_ssaoCB->update(m_ssaoData);
+                    m_ssaoCB->bindPS(0);
+                    m_ssaoClampSampler->bindPS(0);
+                    m_ssaoNoiseSampler->bindPS(1);
+                    m_sceneRT->bindDepthSRV(ctx, 0);
+                    m_normalsRT->bindSRV(ctx, 1);
+                    {
+                        ID3D11ShaderResourceView* noiseSRV = m_ssaoNoiseSRV.Get();
+                        ctx->PSSetShaderResources(2, 1, &noiseSRV);
+                    }
+                    m_ssaoPass->render(m_ssaoRT.get(), m_ssaoRT.get(), m_graphics.get());
+                    m_sceneRT->unbindDepthSRV(ctx, 0);
+                    m_normalsRT->unbindSRV(ctx, 1);
+                    {
+                        ID3D11ShaderResourceView* null = nullptr;
+                        ctx->PSSetShaderResources(2, 1, &null);
+                    }
+
+                    m_ssaoBlurCB->update(m_ssaoBlurData);
+                    m_ssaoBlurCB->bindPS(0);
+                    m_ssaoClampSampler->bindPS(0);
+                    m_ssaoRT->bindSRV(ctx, 0);
+                    m_sceneRT->bindDepthSRV(ctx, 1);
+                    m_ssaoBlurPass->render(m_ssaoRT.get(), m_ssaoBlurRT.get(), m_graphics.get());
+                    m_ssaoRT->unbindSRV(ctx, 0);
+                    m_sceneRT->unbindDepthSRV(ctx, 1);
+                }
+
+                if (m_bloomEnabled) {
+                    m_bloomCB->update(m_bloomData);
+                    m_bloomCB->bindPS(0);
+                    m_bloomBrightPass->render(m_sceneRT.get(), m_bloomBrightRT.get(), m_graphics.get());
+
+                    m_blurData.horizontal = 1;
+                    m_blurCB->update(m_blurData);
+                    m_blurCB->bindPS(0);
+                    m_bloomBlurHPass->render(m_bloomBrightRT.get(), m_bloomBlurHRT.get(), m_graphics.get());
+
+                    m_blurData.horizontal = 0;
+                    m_blurCB->update(m_blurData);
+                    m_blurCB->bindPS(0);
+                    m_bloomBlurVPass->render(m_bloomBlurHRT.get(), m_bloomBlurRT.get(), m_graphics.get());
+
+                    m_bloomData.ssaoEnabled = m_ssaoEnabled ? 1.0f : 0.0f;
+                    m_bloomCB->update(m_bloomData);
+                    m_bloomCB->bindPS(0);
+                    renderer::RenderTarget* ssaoInput = m_ssaoEnabled ? m_ssaoBlurRT.get() : m_ssaoRT.get();
+                    m_bloomCompositePass->renderMulti(
+                        { m_sceneRT.get(), m_bloomBlurRT.get(), ssaoInput },
+                        m_bloomCompositeRT.get(),
+                        m_graphics.get());
+                }
+
+                renderer::RenderTarget* hdrInput = m_bloomEnabled ? m_bloomCompositeRT.get() : m_sceneRT.get();
                 m_postProcessCB->update(m_postProcessData);
                 m_postProcessCB->bindPS(0);
-                m_blitPass->render(m_sceneRT.get(), m_ldrRT.get(), m_graphics.get());
+                m_blitPass->render(hdrInput, m_ldrRT.get(), m_graphics.get());
 
                 m_fxaaCB->update(m_fxaaData);
                 m_fxaaCB->bindPS(0);

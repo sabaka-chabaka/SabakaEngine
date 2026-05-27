@@ -52,6 +52,38 @@ namespace engine::renderer {
         input->unbindSRV(m_context, 0);
     }
 
+    void PostProcessPass::renderMulti(
+        const std::vector<RenderTarget*>& inputs,
+        RenderTarget*                     output,
+        GraphicsDevice*                   gfx)
+    {
+        ID3D11RenderTargetView* nullRTV = nullptr;
+        m_context->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+        ID3D11RenderTargetView* rtv = output->getRTV();
+        m_context->OMSetRenderTargets(1, &rtv, nullptr);
+
+        float clear[4] = { 0, 0, 0, 1 };
+        m_context->ClearRenderTargetView(rtv, clear);
+
+        D3D11_VIEWPORT vp = {};
+        vp.Width    = static_cast<float>(output->getWidth());
+        vp.Height   = static_cast<float>(output->getHeight());
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        m_context->RSSetViewports(1, &vp);
+
+        for (uint32_t i = 0; i < static_cast<uint32_t>(inputs.size()); ++i)
+            inputs[i]->bindSRV(m_context, i);
+
+        m_sampler->bindPS(0);
+        m_shader->bind(m_context);
+        drawFullscreenTriangle();
+
+        for (uint32_t i = 0; i < static_cast<uint32_t>(inputs.size()); ++i)
+            inputs[i]->unbindSRV(m_context, i);
+    }
+
     void PostProcessPass::renderToBackBuffer(RenderTarget* input, GraphicsDevice* gfx) {
         ID3D11RenderTargetView* nullRTV = nullptr;
         m_context->OMSetRenderTargets(1, &nullRTV, nullptr);

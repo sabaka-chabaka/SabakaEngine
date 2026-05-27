@@ -5,6 +5,7 @@
 #include "SamplerState.h"
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace engine::renderer {
 
@@ -17,6 +18,7 @@ namespace engine::renderer {
         PostProcessPass& operator=(const PostProcessPass&) = delete;
 
         void render(RenderTarget* input, RenderTarget* output, GraphicsDevice* gfx);
+        void renderMulti(const std::vector<RenderTarget*>& inputs, RenderTarget* output, GraphicsDevice* gfx);
         void renderToBackBuffer(RenderTarget* input, GraphicsDevice* gfx);
 
         Shader* getShader();

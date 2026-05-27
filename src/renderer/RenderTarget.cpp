@@ -115,22 +115,30 @@ namespace engine::renderer {
         }
 
         if (m_desc.hasDepth) {
+            bool readable = m_desc.readableDepth && (sampleCount == 1);
+
+            DXGI_FORMAT texFmt = readable ? DXGI_FORMAT_R24G8_TYPELESS    : DXGI_FORMAT_D24_UNORM_S8_UINT;
+            DXGI_FORMAT dsvFmt = readable ? DXGI_FORMAT_D24_UNORM_S8_UINT : DXGI_FORMAT_D24_UNORM_S8_UINT;
+            DXGI_FORMAT srvFmt = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+
             D3D11_TEXTURE2D_DESC depthDesc = {};
             depthDesc.Width              = m_desc.width;
             depthDesc.Height             = m_desc.height;
             depthDesc.MipLevels          = 1;
             depthDesc.ArraySize          = 1;
-            depthDesc.Format             = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            depthDesc.Format             = texFmt;
             depthDesc.SampleDesc.Count   = sampleCount;
             depthDesc.SampleDesc.Quality = sampleQuality;
             depthDesc.Usage              = D3D11_USAGE_DEFAULT;
             depthDesc.BindFlags          = D3D11_BIND_DEPTH_STENCIL;
+            if (readable)
+                depthDesc.BindFlags     |= D3D11_BIND_SHADER_RESOURCE;
 
             if (FAILED(device->CreateTexture2D(&depthDesc, nullptr, &m_depthTexture)))
                 throw std::runtime_error("RenderTarget: failed to create depth texture");
 
             D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-            dsvDesc.Format        = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            dsvDesc.Format        = dsvFmt;
             dsvDesc.ViewDimension = (sampleCount > 1) ? D3D11_DSV_DIMENSION_TEXTURE2DMS
                                                       : D3D11_DSV_DIMENSION_TEXTURE2D;
             if (sampleCount == 1)
@@ -138,12 +146,23 @@ namespace engine::renderer {
 
             if (FAILED(device->CreateDepthStencilView(m_depthTexture.Get(), &dsvDesc, &m_dsv)))
                 throw std::runtime_error("RenderTarget: failed to create DSV");
+
+            if (readable) {
+                D3D11_SHADER_RESOURCE_VIEW_DESC depthSRVDesc = {};
+                depthSRVDesc.Format                    = srvFmt;
+                depthSRVDesc.ViewDimension             = D3D11_SRV_DIMENSION_TEXTURE2D;
+                depthSRVDesc.Texture2D.MostDetailedMip = 0;
+                depthSRVDesc.Texture2D.MipLevels       = 1;
+
+                if (FAILED(device->CreateShaderResourceView(m_depthTexture.Get(), &depthSRVDesc, &m_depthSRV)))
+                    throw std::runtime_error("RenderTarget: failed to create depth SRV");
+            }
         }
     }
 
     void RenderTarget::release() {
         m_rtv.Reset(); m_srv.Reset(); m_texture.Reset();
-        m_dsv.Reset(); m_depthTexture.Reset();
+        m_dsv.Reset(); m_depthTexture.Reset(); m_depthSRV.Reset();
     }
 
     void RenderTarget::bindSRV(ID3D11DeviceContext* context, uint32_t slot) {
@@ -152,6 +171,16 @@ namespace engine::renderer {
     }
 
     void RenderTarget::unbindSRV(ID3D11DeviceContext* context, uint32_t slot) {
+        ID3D11ShaderResourceView* null = nullptr;
+        context->PSSetShaderResources(slot, 1, &null);
+    }
+
+    void RenderTarget::bindDepthSRV(ID3D11DeviceContext* context, uint32_t slot) {
+        ID3D11ShaderResourceView* srv = m_depthSRV.Get();
+        context->PSSetShaderResources(slot, 1, &srv);
+    }
+
+    void RenderTarget::unbindDepthSRV(ID3D11DeviceContext* context, uint32_t slot) {
         ID3D11ShaderResourceView* null = nullptr;
         context->PSSetShaderResources(slot, 1, &null);
     }
