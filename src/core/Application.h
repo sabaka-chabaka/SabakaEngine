@@ -20,6 +20,7 @@
 #include "renderer/ShadowSampler.h"
 #include "renderer/RenderTarget.h"
 #include "renderer/PostProcessPass.h"
+#include "renderer/PostProcessBuffer.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -70,8 +71,10 @@ namespace engine::core {
         std::unique_ptr<renderer::ShadowSampler>                            m_shadowSampler;
         std::unique_ptr<renderer::Shader>                                   m_shadowShader;
 
-        std::unique_ptr<renderer::RenderTarget>                             m_sceneRT;
-        std::unique_ptr<renderer::PostProcessPass>                          m_blitPass;
+        std::unique_ptr<renderer::RenderTarget>                                       m_sceneRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_blitPass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::PostProcessData>>          m_postProcessCB;
+        renderer::PostProcessData                                                     m_postProcessData;
 
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;

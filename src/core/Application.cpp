@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "core/Application.h"
 #include "core/Logger.h"
 #include "math/AABB.h"
@@ -5,6 +6,7 @@
 #include <DirectXMath.h>
 #include <chrono>
 #include <cmath>
+#include <algorithm>
 #include <filesystem>
 
 #include "io/ObjLoader.h"
@@ -273,6 +275,16 @@ namespace engine::core {
             L"shaders/Blit.ps.hlsl"
         );
 
+        m_postProcessData.exposure    = 1.0f;
+        m_postProcessData.tonemapMode = static_cast<int>(renderer::TonemapMode::Reinhard);
+        m_postProcessData._pad0       = 0.0f;
+        m_postProcessData._pad1       = 0.0f;
+
+        m_postProcessCB = std::make_unique<renderer::ConstantBuffer<renderer::PostProcessData>>(
+            m_graphics->getDevice(),
+            m_graphics->getDeviceContext()
+        );
+
         LOG_DEBUG("Creating scene...");
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
@@ -399,6 +411,23 @@ namespace engine::core {
                     m_graphics->captureToImage("backbuffer.bmp");
                     LOG_INFO("Captured sceneRT.bmp and backbuffer.bmp");
                 }
+                if (input.isKeyPressed(Key::F7)) {
+                    if (m_postProcessData.tonemapMode == static_cast<int>(renderer::TonemapMode::Reinhard)) {
+                        m_postProcessData.tonemapMode = static_cast<int>(renderer::TonemapMode::ACES);
+                        LOG_INFO("Tone mapping: ACES Filmic");
+                    } else {
+                        m_postProcessData.tonemapMode = static_cast<int>(renderer::TonemapMode::Reinhard);
+                        LOG_INFO("Tone mapping: Reinhard");
+                    }
+                }
+                if (input.isKeyPressed(Key::F8)) {
+                    m_postProcessData.exposure = std::min(m_postProcessData.exposure + 0.1f, 5.0f);
+                    LOG_INFO("Exposure: " + std::to_string(m_postProcessData.exposure));
+                }
+                if (input.isKeyPressed(Key::F9)) {
+                    m_postProcessData.exposure = std::max(m_postProcessData.exposure - 0.1f, 0.1f);
+                    LOG_INFO("Exposure: " + std::to_string(m_postProcessData.exposure));
+                }
 
                 auto* transform = m_cubeEntity->getComponent<Transform>();
                 transform->rotateEuler(
@@ -520,6 +549,8 @@ namespace engine::core {
                 m_occlusionQuery->end(ctx);
 
                 m_shadowMap->unbindAsResource(ctx, 3);
+                m_postProcessCB->update(m_postProcessData);
+                m_postProcessCB->bindPS(0);
                 m_blitPass->renderToBackBuffer(m_sceneRT.get(), m_graphics.get());
 
                 onRender();

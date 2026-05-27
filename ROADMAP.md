@@ -76,8 +76,8 @@
 ```
 [✓] 49. Render To Texture (рендерить сцену в текстуру)
 [✓] 50. Fullscreen Quad (квад для постэффектов)
-[ ] 51. Gamma Correction (линейное → sRGB)
-[ ] 52. Tone Mapping (HDR → LDR, Reinhard / ACES)
+[✓] 51. Gamma Correction (линейное → sRGB)
+[✓] 52. Tone Mapping (HDR → LDR, Reinhard / ACES)
 [ ] 53. FXAA (быстрое сглаживание пост-процессом)
 [ ] 54. MSAA (мультисэмплинг на уровне SwapChain)
 [ ] 55. Bloom (bright pass + gaussian blur + composite)
