@@ -75,6 +75,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/PostProcessPass.h
         src/renderer/RenderTarget.cpp
         src/renderer/RenderTarget.h
+        src/renderer/PostProcessBuffer.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
