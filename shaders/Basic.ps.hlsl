@@ -6,6 +6,15 @@ SamplerState sampler0     : register(s0);
 
 SamplerComparisonState shadowSampler : register(s1);
 
+cbuffer TransformBuffer : register(b0)
+{
+    matrix model;
+    matrix view;
+    matrix projection;
+    matrix normalMatrix;
+};
+
+
 cbuffer MaterialBuffer : register(b1)
 {
     float  specularIntensity;
@@ -153,7 +162,13 @@ float3 calcSpot(GpuLight light, float3 worldPos,
                           light.color.rgb, light.color.a) * att;
 }
 
-float4 main(PSInput input) : SV_TARGET
+struct PSOutput
+{
+    float4 color  : SV_TARGET0;
+    float4 normal : SV_TARGET1;
+};
+
+PSOutput main(PSInput input)
 {
     float2 finalUV  = input.uv * uvScale + uvOffset;
     float4 diffuse  = diffuseMap.Sample(sampler0, finalUV);
@@ -186,7 +201,7 @@ float4 main(PSInput input) : SV_TARGET
     {
         if (lights[i].params.w < 0.5) continue;
 
-        int type = (int)lights[i].positionAndType.w;
+        int type = int(lights[i].positionAndType.w);
 
         if (type == LIGHT_DIRECTIONAL)
             result += calcDirectional(lights[i], N, V, baseColor, specular.rgb, shadow);
@@ -196,5 +211,11 @@ float4 main(PSInput input) : SV_TARGET
             result += calcSpot(lights[i], input.worldPos, N, V, baseColor, specular.rgb);
     }
 
-    return float4(saturate(result), diffuse.a);
+    float3 viewN  = normalize(mul(float3x3(view[0].xyz, view[1].xyz, view[2].xyz), N));
+    float3 encN   = viewN * 0.5 + 0.5;
+
+    PSOutput output;
+    output.color  = float4(saturate(result), diffuse.a);
+    output.normal = float4(encN, 1.0);
+    return output;
 }
