@@ -79,7 +79,7 @@
 [✓] 51. Gamma Correction (линейное → sRGB)
 [✓] 52. Tone Mapping (HDR → LDR, Reinhard / ACES)
 [✓] 53. FXAA (быстрое сглаживание пост-процессом)
-[ ] 54. MSAA (мультисэмплинг на уровне SwapChain)
+[✓] 54. MSAA (мультисэмплинг на уровне SwapChain)
 [ ] 55. Bloom (bright pass + gaussian blur + composite)
 [ ] 56. SSAO (Screen Space Ambient Occlusion)
 [ ] 57. Motion Blur (velocity buffer)

@@ -211,6 +211,9 @@ namespace engine::core {
             if (m_sceneRT && w > 0 && h > 0)
                 m_sceneRT->resize(m_graphics->getDevice(),
                     static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+            if (m_msaaRT && w > 0 && h > 0)
+                m_msaaRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
             if (m_ldrRT && w > 0 && h > 0) {
                 m_ldrRT->resize(m_graphics->getDevice(),
                     static_cast<uint32_t>(w), static_cast<uint32_t>(h));
@@ -272,6 +275,18 @@ namespace engine::core {
             rtDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
             rtDesc.hasDepth = true;
             m_sceneRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), rtDesc);
+        }
+
+        LOG_DEBUG("Creating MSAA render target (4x)...");
+        {
+            renderer::RenderTargetDesc msaaDesc;
+            msaaDesc.width       = static_cast<uint32_t>(m_window->getWidth());
+            msaaDesc.height      = static_cast<uint32_t>(m_window->getHeight());
+            msaaDesc.format      = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            msaaDesc.hasDepth    = true;
+            msaaDesc.sampleCount = 4;
+            m_msaaRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), msaaDesc);
+            LOG_INFO("MSAA 4x render target created");
         }
 
         LOG_DEBUG("Creating blit pass...");
@@ -463,6 +478,10 @@ namespace engine::core {
                     m_fxaaData.enabled = m_fxaaData.enabled ? 0 : 1;
                     LOG_INFO(m_fxaaData.enabled ? "FXAA ON" : "FXAA OFF");
                 }
+                if (input.isKeyPressed(Key::F11)) {
+                    m_msaaEnabled = !m_msaaEnabled;
+                    LOG_INFO(m_msaaEnabled ? "MSAA 4x ON" : "MSAA OFF");
+                }
 
                 auto* transform = m_cubeEntity->getComponent<Transform>();
                 transform->rotateEuler(
@@ -513,14 +532,15 @@ namespace engine::core {
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
 
                 {
-                    ID3D11RenderTargetView* rtv = m_sceneRT->getRTV();
-                    ctx->OMSetRenderTargets(1, &rtv, m_sceneRT->getDSV());
+                    renderer::RenderTarget* activeRT = m_msaaEnabled ? m_msaaRT.get() : m_sceneRT.get();
+                    ID3D11RenderTargetView* rtv = activeRT->getRTV();
+                    ctx->OMSetRenderTargets(1, &rtv, activeRT->getDSV());
                     float color[4] = { 0.08f, 0.08f, 0.12f, 1.0f };
                     ctx->ClearRenderTargetView(rtv, color);
-                    ctx->ClearDepthStencilView(m_sceneRT->getDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+                    ctx->ClearDepthStencilView(activeRT->getDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
                     D3D11_VIEWPORT vp = {};
-                    vp.Width    = static_cast<float>(m_sceneRT->getWidth());
-                    vp.Height   = static_cast<float>(m_sceneRT->getHeight());
+                    vp.Width    = static_cast<float>(activeRT->getWidth());
+                    vp.Height   = static_cast<float>(activeRT->getHeight());
                     vp.MinDepth = 0.0f;
                     vp.MaxDepth = 1.0f;
                     ctx->RSSetViewports(1, &vp);
@@ -564,11 +584,12 @@ namespace engine::core {
                 m_graphics->setBlendMode(renderer::BlendMode::Opaque);
 
                 {
-                    ID3D11RenderTargetView* rtv = m_sceneRT->getRTV();
-                    ctx->OMSetRenderTargets(1, &rtv, m_sceneRT->getDSV());
+                    renderer::RenderTarget* activeRT = m_msaaEnabled ? m_msaaRT.get() : m_sceneRT.get();
+                    ID3D11RenderTargetView* rtv = activeRT->getRTV();
+                    ctx->OMSetRenderTargets(1, &rtv, activeRT->getDSV());
                     D3D11_VIEWPORT vp = {};
-                    vp.Width    = static_cast<float>(m_sceneRT->getWidth());
-                    vp.Height   = static_cast<float>(m_sceneRT->getHeight());
+                    vp.Width    = static_cast<float>(activeRT->getWidth());
+                    vp.Height   = static_cast<float>(activeRT->getHeight());
                     vp.MinDepth = 0.0f;
                     vp.MaxDepth = 1.0f;
                     ctx->RSSetViewports(1, &vp);
@@ -584,6 +605,10 @@ namespace engine::core {
                 m_occlusionQuery->end(ctx);
 
                 m_shadowMap->unbindAsResource(ctx, 3);
+
+                if (m_msaaEnabled)
+                    m_msaaRT->resolveInto(ctx, m_sceneRT.get());
+
                 m_postProcessCB->update(m_postProcessData);
                 m_postProcessCB->bindPS(0);
                 m_blitPass->render(m_sceneRT.get(), m_ldrRT.get(), m_graphics.get());

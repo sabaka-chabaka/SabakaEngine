@@ -73,6 +73,8 @@ namespace engine::core {
         std::unique_ptr<renderer::Shader>                                   m_shadowShader;
 
         std::unique_ptr<renderer::RenderTarget>                                       m_sceneRT;
+        std::unique_ptr<renderer::RenderTarget>                                       m_msaaRT;
+        bool                                                                          m_msaaEnabled = true;
         std::unique_ptr<renderer::PostProcessPass>                                    m_blitPass;
         std::unique_ptr<renderer::ConstantBuffer<renderer::PostProcessData>>          m_postProcessCB;
         renderer::PostProcessData                                                     m_postProcessData;
