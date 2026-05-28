@@ -358,10 +358,11 @@ namespace engine::core {
         LOG_DEBUG("Creating normals render target...");
         {
             renderer::RenderTargetDesc normDesc;
-            normDesc.width    = w;
-            normDesc.height   = h;
-            normDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
-            normDesc.hasDepth = false;
+            normDesc.width       = w;
+            normDesc.height      = h;
+            normDesc.format      = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            normDesc.hasDepth    = false;
+            normDesc.sampleCount = m_msaaEnabled ? 4 : 1;
             m_normalsRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), normDesc);
         }
 
@@ -705,6 +706,12 @@ namespace engine::core {
                 {
                     renderer::RenderTarget* activeRT = m_msaaEnabled ? m_msaaRT.get() : m_sceneRT.get();
                     ID3D11RenderTargetView* rtvs[2] = { activeRT->getRTV(), m_normalsRT->getRTV() };
+
+                    // Unbind SRVs to avoid hazards
+                    activeRT->unbindSRV(ctx, 0);
+                    activeRT->unbindDepthSRV(ctx, 0);
+                    m_normalsRT->unbindSRV(ctx, 1);
+
                     ctx->OMSetRenderTargets(2, rtvs, activeRT->getDSV());
                     float color[4] = { 0.08f, 0.08f, 0.12f, 1.0f };
                     float black[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -759,6 +766,12 @@ namespace engine::core {
                 {
                     renderer::RenderTarget* activeRT = m_msaaEnabled ? m_msaaRT.get() : m_sceneRT.get();
                     ID3D11RenderTargetView* rtvs[2] = { activeRT->getRTV(), m_normalsRT->getRTV() };
+
+                    // Unbind SRVs to avoid hazards
+                    activeRT->unbindSRV(ctx, 0);
+                    activeRT->unbindDepthSRV(ctx, 0);
+                    m_normalsRT->unbindSRV(ctx, 1);
+
                     ctx->OMSetRenderTargets(2, rtvs, activeRT->getDSV());
                     D3D11_VIEWPORT vp = {};
                     vp.Width    = static_cast<float>(activeRT->getWidth());
@@ -800,6 +813,7 @@ namespace engine::core {
                         ID3D11ShaderResourceView* null = nullptr;
                         ctx->PSSetShaderResources(2, 1, &null);
                     }
+                    m_ssaoNoiseSampler->unbindPS(1); 
 
                     m_ssaoBlurCB->update(m_ssaoBlurData);
                     m_ssaoBlurCB->bindPS(0);
@@ -809,6 +823,7 @@ namespace engine::core {
                     m_ssaoBlurPass->render(m_ssaoRT.get(), m_ssaoBlurRT.get(), m_graphics.get());
                     m_ssaoRT->unbindSRV(ctx, 0);
                     m_sceneRT->unbindDepthSRV(ctx, 1);
+                    m_ssaoClampSampler->unbindPS(0);
                 }
 
                 if (m_bloomEnabled) {

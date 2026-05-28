@@ -38,7 +38,9 @@ namespace engine::renderer {
         SamplerState& operator=(const SamplerState&) = delete;
 
         void bindPS(unsigned int slot) const;
+        void unbindPS(unsigned int slot) const;
         void bindVS(unsigned int slot) const;
+        void unbindVS(unsigned int slot) const;
 
     private:
         ComPtr<ID3D11SamplerState> m_sampler;

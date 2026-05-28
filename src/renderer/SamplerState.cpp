@@ -49,8 +49,18 @@ namespace engine::renderer {
     void SamplerState::bindPS(unsigned int slot) const {
         m_context->PSSetSamplers(slot, 1, m_sampler.GetAddressOf());
     }
+    
+    void SamplerState::unbindPS(unsigned int slot) const {
+        ID3D11SamplerState* null = nullptr;
+        m_context->PSSetSamplers(slot, 1, &null);
+    }
 
     void SamplerState::bindVS(unsigned int slot) const {
         m_context->VSSetSamplers(slot, 1, m_sampler.GetAddressOf());
+    }
+
+    void SamplerState::unbindVS(unsigned int slot) const {
+        ID3D11SamplerState* null = nullptr;
+        m_context->VSSetSamplers(slot, 1, &null);
     }
 }
