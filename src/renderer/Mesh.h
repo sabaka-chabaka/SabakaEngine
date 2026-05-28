@@ -12,7 +12,7 @@ namespace engine::renderer {
         float r, g, b;
         float u, v;
         float nx, ny, nz;
-        float tx, ty, tz;
+        float tx, ty, tz, tw;
     };
 
     class Mesh {

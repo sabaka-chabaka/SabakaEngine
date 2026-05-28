@@ -19,7 +19,7 @@ struct VSInput
     float3 color    : COLOR;
     float2 uv       : TEXCOORD0;
     float3 normal   : NORMAL;
-    float3 tangent  : TANGENT;
+    float4 tangent  : TANGENT;
 };
 
 struct VSOutput
@@ -48,10 +48,10 @@ VSOutput main(VSInput input)
 
     float3x3 nm = (float3x3)normalMatrix;
     float3 N = normalize(mul(input.normal,  nm));
-    float3 T = normalize(mul(input.tangent, nm));
+    float3 T = normalize(mul(input.tangent.xyz, nm));
 
     T = normalize(T - dot(T, N) * N);
-    float3 B = cross(N, T);
+    float3 B = cross(N, T) * input.tangent.w;
 
     output.T = T;
     output.B = B;

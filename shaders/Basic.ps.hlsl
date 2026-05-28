@@ -180,13 +180,18 @@ PSOutput main(PSInput input)
     float3 N;
     if (useNormalMap > 0.5)
     {
-        float3 nTangent = normalMap.Sample(sampler0, finalUV).rgb * 2.0 - 1.0;
-        float3x3 TBN = float3x3(
-            normalize(input.T),
-            normalize(input.B),
-            normalize(input.N)
-        );
-        N = normalize(mul(nTangent, TBN));
+        float3 nNormal = normalMap.Sample(sampler0, finalUV).rgb * 2.0 - 1.0;
+        nNormal.g = -nNormal.g; // Standard fix for OpenGL normal maps in DirectX
+        
+        float3 T = normalize(input.T);
+        float3 NG = normalize(input.N);
+        
+        // Gram-Schmidt orthogonalization
+        T = normalize(T - dot(T, NG) * NG);
+        float3 B = normalize(input.B - dot(input.B, NG) * NG - dot(input.B, T) * T);
+        
+        float3x3 TBN = float3x3(T, B, NG);
+        N = normalize(mul(nNormal, TBN));
     }
     else
     {
@@ -211,7 +216,7 @@ PSOutput main(PSInput input)
             result += calcSpot(lights[i], input.worldPos, N, V, baseColor, specular.rgb);
     }
 
-    float3 viewN  = normalize(mul(float3x3(view[0].xyz, view[1].xyz, view[2].xyz), N));
+    float3 viewN  = normalize(mul(float4(N, 0.0), view).xyz);
     float3 encN   = viewN * 0.5 + 0.5;
 
     PSOutput output;

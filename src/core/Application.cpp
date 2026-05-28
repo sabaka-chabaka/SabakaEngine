@@ -66,11 +66,11 @@ namespace engine::core {
         }
 
         std::vector<renderer::InputElementDesc> cubeLayout = {
-            {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT, 0},
-            {"COLOR",    DXGI_FORMAT_R32G32B32_FLOAT, 12},
-            {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT,    24},
-            {"NORMAL",   DXGI_FORMAT_R32G32B32_FLOAT, 32},
-            {"TANGENT",  DXGI_FORMAT_R32G32B32_FLOAT, 44},
+            {"POSITION", DXGI_FORMAT_R32G32B32_FLOAT,    0},
+            {"COLOR",    DXGI_FORMAT_R32G32B32_FLOAT,    12},
+            {"TEXCOORD", DXGI_FORMAT_R32G32_FLOAT,       24},
+            {"NORMAL",   DXGI_FORMAT_R32G32B32_FLOAT,    32},
+            {"TANGENT",  DXGI_FORMAT_R32G32B32A32_FLOAT, 44},
         };
 
         LOG_DEBUG("Compiling main shader...");

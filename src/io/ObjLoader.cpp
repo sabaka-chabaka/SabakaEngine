@@ -22,6 +22,7 @@ namespace engine::io {
         const std::vector<unsigned int>& indices
     ) {
         std::vector<XMFLOAT3> tan(verts.size(), { 0.f, 0.f, 0.f });
+        std::vector<XMFLOAT3> bitan(verts.size(), { 0.f, 0.f, 0.f });
 
         for (size_t i = 0; i + 2 < indices.size(); i += 3) {
             auto& v0 = verts[indices[i]];
@@ -43,12 +44,16 @@ namespace engine::io {
                 (dP1.y * dV2 - dP2.y * dV1) * r,
                 (dP1.z * dV2 - dP2.z * dV1) * r,
             };
+            XMFLOAT3 b = {
+                (dP2.x * dU1 - dP1.x * dU2) * r,
+                (dP2.y * dU1 - dP1.y * dU2) * r,
+                (dP2.z * dU1 - dP1.z * dU2) * r,
+            };
 
             for (int k = 0; k < 3; ++k) {
                 unsigned int idx = indices[i + k];
-                tan[idx].x += t.x;
-                tan[idx].y += t.y;
-                tan[idx].z += t.z;
+                tan[idx].x += t.x; tan[idx].y += t.y; tan[idx].z += t.z;
+                bitan[idx].x += b.x; bitan[idx].y += b.y; bitan[idx].z += b.z;
             }
         }
 
@@ -56,10 +61,18 @@ namespace engine::io {
             auto& v = verts[i];
             XMVECTOR N = XMVectorSet(v.nx, v.ny, v.nz, 0.f);
             XMVECTOR T = XMVectorSet(tan[i].x, tan[i].y, tan[i].z, 0.f);
+            XMVECTOR B = XMVectorSet(bitan[i].x, bitan[i].y, bitan[i].z, 0.f);
+
+            // Gram-Schmidt
             T = XMVector3Normalize(T - N * XMVector3Dot(N, T));
+
+            // Handedness
+            float handedness = XMVectorGetX(XMVector3Dot(XMVector3Cross(N, T), B)) < 0.0f ? -1.0f : 1.0f;
+
             v.tx = XMVectorGetX(T);
             v.ty = XMVectorGetY(T);
             v.tz = XMVectorGetZ(T);
+            v.tw = handedness;
         }
     }
 
