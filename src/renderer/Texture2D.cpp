@@ -11,8 +11,7 @@ namespace engine::renderer {
                          ID3D11DeviceContext *context,
                          const std::string &path,
                          const TextureDesc &desc)
-        : m_context(context)
-          , m_path(path) {
+        : m_device(device), m_context(context), m_desc(desc), m_path(path) {
         stbi_set_flip_vertically_on_load(0);
 
         int channels = 0;
@@ -165,5 +164,25 @@ namespace engine::renderer {
 
     ID3D11ShaderResourceView *Texture2D::getSRV() const {
         return m_srv.Get();
+    }
+
+    bool Texture2D::tryReload()
+    {
+        if (m_path.empty() || m_path == "<raw>" || !m_device || !m_context)
+            return false;
+
+        try {
+            LOG_INFO("Hot reloading texture: " + m_path);
+            Texture2D fresh(m_device, m_context, m_path, m_desc);
+            m_texture = std::move(fresh.m_texture);
+            m_srv     = std::move(fresh.m_srv);
+            m_width   = fresh.m_width;
+            m_height  = fresh.m_height;
+            LOG_INFO("Texture reloaded: " + m_path);
+            return true;
+        } catch (const std::exception& e) {
+            LOG_ERROR("Texture hot reload failed: " + std::string(e.what()));
+            return false;
+        }
     }
 }

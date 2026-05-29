@@ -647,6 +647,35 @@ namespace engine::core {
         m_assetManager = std::make_unique<assets::AssetManager>(
             m_graphics->getDevice(), m_graphics->getDeviceContext());
 
+        LOG_DEBUG("Mounting VFS paths...");
+        VFS::get().mount("assets",  exeDir);
+        VFS::get().mount("shaders", exeDir + "/shaders");
+        VFS::get().mount("textures",exeDir + "/textures");
+        VFS::get().mount("models",  exeDir + "/models");
+
+        LOG_DEBUG("Starting shader FileWatcher...");
+        m_shaderWatcher = std::make_unique<FileWatcher>(
+            exeDir + "/shaders",
+            [this](const FileChangeEvent& ev) {
+                const std::string& p = ev.path;
+                if (p.size() >= 5 && p.substr(p.size() - 5) == ".hlsl") {
+                    std::unique_lock lock(m_reloadMutex);
+                    m_pendingShaderReloads.push_back(p);
+                }
+            });
+
+        LOG_DEBUG("Starting texture FileWatcher...");
+        m_textureWatcher = std::make_unique<FileWatcher>(
+            exeDir + "/textures",
+            [this](const FileChangeEvent& ev) {
+                const std::string& p = ev.path;
+                auto ext = std::filesystem::path(p).extension().string();
+                if (ext == ".png" || ext == ".jpg" || ext == ".dds" || ext == ".bmp") {
+                    std::unique_lock lock(m_reloadMutex);
+                    m_pendingTextureReloads.push_back(p);
+                }
+            });
+
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
 
@@ -851,6 +880,35 @@ namespace engine::core {
                 );
 
                 m_assetManager->flushPendingUploads();
+
+                {
+                    std::vector<std::string> shaderReloads;
+                    std::vector<std::string> textureReloads;
+                    {
+                        std::unique_lock lock(m_reloadMutex);
+                        shaderReloads  = std::move(m_pendingShaderReloads);
+                        textureReloads = std::move(m_pendingTextureReloads);
+                    }
+
+                    for (const auto& path : shaderReloads) {
+                        for (auto* s : { m_shader.get(), m_shadowShader.get() }) {
+                            if (!s) continue;
+                            auto ps = std::wstring(path.begin(), path.end());
+                            auto vs = std::wstring(path.begin(), path.end());
+                            if (s->getPsPath() == ps || s->getVsPath() == vs)
+                                s->tryReload(m_graphics->getDevice());
+                        }
+                    }
+
+                    for (const auto& path : textureReloads) {
+                        for (auto* t : { m_diffuseTexture.get(),
+                                         m_specularTexture.get(),
+                                         m_normalMap.get() }) {
+                            if (t && t->getPath() == path)
+                                t->tryReload();
+                        }
+                    }
+                }
 
                 onUpdate(deltaTime);
 

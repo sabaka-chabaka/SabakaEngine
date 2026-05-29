@@ -29,13 +29,23 @@ namespace engine::renderer {
 
         void bind(ID3D11DeviceContext* context) const;
 
+        bool tryReload(ID3D11Device* device);
+
+        const std::wstring& getVsPath() const { return m_vsPath; }
+        const std::wstring& getPsPath() const { return m_psPath; }
+
     private:
         std::vector<char> compileFromFile(const std::wstring& path,
                                           const std::string&  entryPoint,
                                           const std::string&  target);
 
-        ComPtr<ID3D11VertexShader> m_vertexShader;
-        ComPtr<ID3D11PixelShader>  m_pixelShader;
-        ComPtr<ID3D11InputLayout>  m_inputLayout;
+        ComPtr<ID3D11VertexShader>           m_vertexShader;
+        ComPtr<ID3D11PixelShader>            m_pixelShader;
+        ComPtr<ID3D11InputLayout>            m_inputLayout;
+
+        std::wstring                         m_vsPath;
+        std::wstring                         m_psPath;
+        std::vector<InputElementDesc>        m_layout;
+        ID3D11Device*                        m_device = nullptr;
     };
 }

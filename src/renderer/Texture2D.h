@@ -36,6 +36,8 @@ namespace engine::renderer{
         void bindPS(unsigned int slot) const;
         void bindVS(unsigned int slot) const;
 
+        bool tryReload();
+
         int getWidth()    const;
         int getHeight()   const;
         const std::string& getPath() const;
@@ -46,7 +48,9 @@ namespace engine::renderer{
         ComPtr<ID3D11Texture2D>           m_texture;
         ComPtr<ID3D11ShaderResourceView>  m_srv;
 
+        ID3D11Device*        m_device  = nullptr;
         ID3D11DeviceContext* m_context = nullptr;
+        TextureDesc          m_desc;
 
         int         m_width  = 0;
         int         m_height = 0;

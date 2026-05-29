@@ -12,6 +12,7 @@ Shader::Shader(ID3D11Device*                        device,
                const std::wstring&                  vsPath,
                const std::wstring&                  psPath,
                const std::vector<InputElementDesc>&  layout)
+    : m_vsPath(vsPath), m_psPath(psPath), m_layout(layout), m_device(device)
 {
     std::string vsPathString(vsPath.begin(), vsPath.end());
     std::string psPathString(psPath.begin(), psPath.end());
@@ -126,6 +127,54 @@ void Shader::bind(ID3D11DeviceContext* context) const {
     const char* begin = static_cast<const char*>(shaderBlob->GetBufferPointer());
     const char* end   = begin + shaderBlob->GetBufferSize();
     return std::vector<char>(begin, end);
+}
+
+bool Shader::tryReload(ID3D11Device* device)
+{
+    try {
+        std::string vsStr(m_vsPath.begin(), m_vsPath.end());
+        std::string psStr(m_psPath.begin(), m_psPath.end());
+        LOG_INFO("Hot reloading shader: VS=" + vsStr + " PS=" + psStr);
+
+        std::vector<char> vsBytecode = compileFromFile(m_vsPath, "main", "vs_5_0");
+        std::vector<char> psBytecode = compileFromFile(m_psPath, "main", "ps_5_0");
+
+        ComPtr<ID3D11VertexShader> newVS;
+        ComPtr<ID3D11PixelShader>  newPS;
+
+        if (FAILED(device->CreateVertexShader(vsBytecode.data(), vsBytecode.size(), nullptr, &newVS)))
+            return false;
+        if (FAILED(device->CreatePixelShader(psBytecode.data(), psBytecode.size(), nullptr, &newPS)))
+            return false;
+
+        ComPtr<ID3D11InputLayout> newLayout;
+        if (!m_layout.empty()) {
+            std::vector<D3D11_INPUT_ELEMENT_DESC> d3dLayout;
+            d3dLayout.reserve(m_layout.size());
+            for (const auto& elem : m_layout) {
+                D3D11_INPUT_ELEMENT_DESC d = {};
+                d.SemanticName             = elem.semanticName;
+                d.Format                   = elem.format;
+                d.AlignedByteOffset        = elem.offset;
+                d.InputSlotClass           = D3D11_INPUT_PER_VERTEX_DATA;
+                d3dLayout.push_back(d);
+            }
+            if (FAILED(device->CreateInputLayout(
+                d3dLayout.data(), static_cast<UINT>(d3dLayout.size()),
+                vsBytecode.data(), vsBytecode.size(), &newLayout)))
+                return false;
+        }
+
+        m_vertexShader = std::move(newVS);
+        m_pixelShader  = std::move(newPS);
+        m_inputLayout  = std::move(newLayout);
+
+        LOG_INFO("Shader reloaded: " + vsStr);
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Hot reload failed: " + std::string(e.what()));
+        return false;
+    }
 }
 
 }

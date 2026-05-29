@@ -28,6 +28,8 @@
 #include "renderer/DofBuffer.h"
 #include "renderer/ColorGradingBuffer.h"
 #include "assets/AssetManager.h"
+#include "core/VFS.h"
+#include "core/FileWatcher.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -152,6 +154,13 @@ namespace engine::core {
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
         std::unique_ptr<renderer::Material>                                 m_cubeMaterial;
         std::unique_ptr<assets::AssetManager>                               m_assetManager;
+
+        std::unique_ptr<FileWatcher>                                        m_shaderWatcher;
+        std::unique_ptr<FileWatcher>                                        m_textureWatcher;
+
+        std::mutex                                                          m_reloadMutex;
+        std::vector<std::string>                                            m_pendingShaderReloads;
+        std::vector<std::string>                                            m_pendingTextureReloads;
 
         math::Frustum                                                       m_frustum;
 
