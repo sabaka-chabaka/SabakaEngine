@@ -239,6 +239,9 @@ namespace engine::core {
                 m_ssaoBlurData.texelSizeX = 1.0f / static_cast<float>(w);
                 m_ssaoBlurData.texelSizeY = 1.0f / static_cast<float>(h);
             }
+            if (m_motionBlurRT && w > 0 && h > 0)
+                m_motionBlurRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
         });
 
         if (m_window->getWidth() > 0 && m_window->getHeight() > 0) {
@@ -488,6 +491,31 @@ namespace engine::core {
         m_ssaoBlurCB = std::make_unique<renderer::ConstantBuffer<renderer::SSAOBlurData>>(
             m_graphics->getDevice(), m_graphics->getDeviceContext());
 
+        LOG_DEBUG("Creating motion blur render target...");
+        {
+            renderer::RenderTargetDesc mbDesc;
+            mbDesc.width    = w;
+            mbDesc.height   = h;
+            mbDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            mbDesc.hasDepth = false;
+            m_motionBlurRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), mbDesc);
+        }
+
+        LOG_DEBUG("Creating motion blur pass...");
+        m_motionBlurPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/MotionBlur.ps.hlsl");
+
+        m_motionBlurData.prevViewProj = DirectX::XMMatrixIdentity();
+        m_motionBlurData.invViewProj  = DirectX::XMMatrixIdentity();
+        m_motionBlurData.strength     = 1.0f;
+        m_motionBlurData.numSamples   = 8;
+        m_motionBlurData.enabled      = 1;
+        m_motionBlurData._pad         = 0.0f;
+        m_motionBlurCB = std::make_unique<renderer::ConstantBuffer<renderer::MotionBlurData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
+
+        m_prevViewProj = DirectX::XMMatrixIdentity();
+
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
 
@@ -646,6 +674,11 @@ namespace engine::core {
                     m_ssaoEnabled = !m_ssaoEnabled;
                     LOG_INFO(m_ssaoEnabled ? "SSAO ON" : "SSAO OFF");
                 }
+                if (input.isKeyPressed(Key::V)) {
+                    m_motionBlurEnabled = !m_motionBlurEnabled;
+                    m_motionBlurData.enabled = m_motionBlurEnabled ? 1 : 0;
+                    LOG_INFO(m_motionBlurEnabled ? "Motion Blur ON" : "Motion Blur OFF");
+                }
                 if (input.isKeyPressed(Key::N)) {
                     m_bloomData.intensity = std::min(m_bloomData.intensity + 0.1f, 3.0f);
                     LOG_INFO("Bloom intensity: " + std::to_string(m_bloomData.intensity));
@@ -677,6 +710,9 @@ namespace engine::core {
 
                 XMMATRIX view       = m_camera->getViewMatrix();
                 XMMATRIX projection = m_camera->getProjectionMatrix();
+
+                XMMATRIX viewProj    = XMMatrixMultiply(view, projection);
+                XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
 
                 m_frustum.buildFromViewProjection(view * projection);
 
@@ -813,7 +849,7 @@ namespace engine::core {
                         ID3D11ShaderResourceView* null = nullptr;
                         ctx->PSSetShaderResources(2, 1, &null);
                     }
-                    m_ssaoNoiseSampler->unbindPS(1); 
+                    m_ssaoNoiseSampler->unbindPS(1);
 
                     m_ssaoBlurCB->update(m_ssaoBlurData);
                     m_ssaoBlurCB->bindPS(0);
@@ -852,6 +888,20 @@ namespace engine::core {
                 }
 
                 renderer::RenderTarget* hdrInput = m_bloomEnabled ? m_bloomCompositeRT.get() : m_sceneRT.get();
+
+                {
+                    m_motionBlurData.prevViewProj = XMMatrixTranspose(m_prevViewProj);
+                    m_motionBlurData.invViewProj  = XMMatrixTranspose(invViewProj);
+                    m_motionBlurData.enabled      = m_motionBlurEnabled ? 1 : 0;
+                    m_motionBlurCB->update(m_motionBlurData);
+                    m_motionBlurCB->bindPS(0);
+                    m_sceneRT->bindDepthSRV(ctx, 1);
+                    m_motionBlurPass->render(hdrInput, m_motionBlurRT.get(), m_graphics.get());
+                    m_sceneRT->unbindDepthSRV(ctx, 1);
+
+                    hdrInput = m_motionBlurRT.get();
+                }
+
                 m_postProcessCB->update(m_postProcessData);
                 m_postProcessCB->bindPS(0);
                 m_blitPass->render(hdrInput, m_ldrRT.get(), m_graphics.get());
@@ -859,6 +909,8 @@ namespace engine::core {
                 m_fxaaCB->update(m_fxaaData);
                 m_fxaaCB->bindPS(0);
                 m_fxaaPass->renderToBackBuffer(m_ldrRT.get(), m_graphics.get());
+
+                m_prevViewProj = viewProj;
 
                 onRender();
                 m_graphics->endFrame();

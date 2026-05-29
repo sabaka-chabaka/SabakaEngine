@@ -24,6 +24,7 @@
 #include "renderer/FXAABuffer.h"
 #include "renderer/BloomBuffer.h"
 #include "renderer/SSAOBuffer.h"
+#include "renderer/MotionBlurBuffer.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -114,6 +115,13 @@ namespace engine::core {
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>                              m_ssaoNoiseSRV;
         std::unique_ptr<renderer::SamplerState>                                       m_ssaoNoiseSampler;
         std::unique_ptr<renderer::SamplerState>                                       m_ssaoClampSampler;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_motionBlurRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_motionBlurPass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::MotionBlurData>>           m_motionBlurCB;
+        renderer::MotionBlurData                                                      m_motionBlurData;
+        bool                                                                          m_motionBlurEnabled = true;
+        DirectX::XMMATRIX                                                             m_prevViewProj;
 
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
