@@ -13,12 +13,3 @@ namespace engine::assets {
     }
 
 }
-
-namespace std {
-    template<>
-    struct hash<engine::assets::AssetId> {
-        size_t operator()(engine::assets::AssetId id) const noexcept {
-            return std::hash<uint64_t>{}(id);
-        }
-    };
-}

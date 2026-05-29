@@ -17,7 +17,7 @@ namespace engine::assets {
         }
 
         bool isValid() const {
-            return engine::asset::isValid(m_id) && !m_ptr.expired();
+            return assets::isValid(m_id) && !m_ptr.expired();
         }
 
         std::shared_ptr<T> lock() const {
