@@ -850,6 +850,10 @@ namespace engine::core {
                     deltaTime * 0.2f
                 );
 
+                m_assetManager->flushPendingUploads();
+
+                onUpdate(deltaTime);
+
                 orbitAngle += deltaTime;
 
                 const float ptOrbitRadius = 2.5f;
@@ -872,7 +876,6 @@ namespace engine::core {
                 m_frustum.buildFromViewProjection(view * projection);
 
                 m_scene->update(deltaTime);
-                onUpdate(deltaTime);
 
                 auto* ctx = m_graphics->getDeviceContext();
 

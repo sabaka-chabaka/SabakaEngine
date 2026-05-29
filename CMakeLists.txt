@@ -91,7 +91,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/io/SmeshLoader.h
         src/io/MeshImporter.cpp
         src/io/MeshImporter.h
-        src/ThreadPool.h
+        src/core/ThreadPool.h
         src/assets/AsyncAssetHandle.h
 )
 

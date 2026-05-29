@@ -5,8 +5,13 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <algorithm>
 #include <future>
 #include <memory>
+
+#ifdef max
+#undef max
+#endif
 
 namespace engine {
 
