@@ -83,9 +83,9 @@
 [✓] 55. Bloom (bright pass + gaussian blur + composite)
 [✓] 56. SSAO (Screen Space Ambient Occlusion)
 [✓] 57. Motion Blur (velocity buffer)
-[ ] 58. Depth of Field (размытие по глубине)
-[ ] 59. Color Grading (LUT текстура 3D)
-[ ] 60. Vignette + Chromatic Aberration
+[✓] 58. Depth of Field (размытие по глубине)
+[✓] 59. Color Grading (LUT текстура 3D)
+[✓] 60. Vignette + Chromatic Aberration
 ```
 
 ### Блок 8 — Asset система

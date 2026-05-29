@@ -25,6 +25,8 @@
 #include "renderer/BloomBuffer.h"
 #include "renderer/SSAOBuffer.h"
 #include "renderer/MotionBlurBuffer.h"
+#include "renderer/DofBuffer.h"
+#include "renderer/ColorGradingBuffer.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -122,6 +124,28 @@ namespace engine::core {
         renderer::MotionBlurData                                                      m_motionBlurData;
         bool                                                                          m_motionBlurEnabled = true;
         DirectX::XMMATRIX                                                             m_prevViewProj;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_dofRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_dofPass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::DofData>>                  m_dofCB;
+        renderer::DofData                                                             m_dofData;
+        bool                                                                          m_dofEnabled = true;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_colorGradingRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_colorGradingPass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::ColorGradingData>>         m_colorGradingCB;
+        renderer::ColorGradingData                                                    m_colorGradingData;
+        bool                                                                          m_colorGradingEnabled = true;
+        Microsoft::WRL::ComPtr<ID3D11Texture3D>                                       m_lutTex;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>                              m_lutSRV;
+        std::unique_ptr<renderer::SamplerState>                                       m_lutSampler;
+
+        std::unique_ptr<renderer::RenderTarget>                                       m_vignetteRT;
+        std::unique_ptr<renderer::PostProcessPass>                                    m_vignettePass;
+        std::unique_ptr<renderer::ConstantBuffer<renderer::VignetteData>>             m_vignetteCB;
+        renderer::VignetteData                                                        m_vignetteData;
+        bool                                                                          m_vignetteEnabled       = true;
+        bool                                                                          m_aberrationEnabled     = true;
 
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;

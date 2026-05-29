@@ -242,6 +242,15 @@ namespace engine::core {
             if (m_motionBlurRT && w > 0 && h > 0)
                 m_motionBlurRT->resize(m_graphics->getDevice(),
                     static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+            if (m_dofRT && w > 0 && h > 0)
+                m_dofRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+            if (m_colorGradingRT && w > 0 && h > 0)
+                m_colorGradingRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+            if (m_vignetteRT && w > 0 && h > 0)
+                m_vignetteRT->resize(m_graphics->getDevice(),
+                    static_cast<uint32_t>(w), static_cast<uint32_t>(h));
         });
 
         if (m_window->getWidth() > 0 && m_window->getHeight() > 0) {
@@ -507,14 +516,133 @@ namespace engine::core {
 
         m_motionBlurData.prevViewProj = DirectX::XMMatrixIdentity();
         m_motionBlurData.invViewProj  = DirectX::XMMatrixIdentity();
-        m_motionBlurData.strength     = 128.0f;
-        m_motionBlurData.numSamples   = 16;
+        m_motionBlurData.strength     = 1.0f;
+        m_motionBlurData.numSamples   = 8;
         m_motionBlurData.enabled      = 1;
         m_motionBlurData._pad         = 0.0f;
         m_motionBlurCB = std::make_unique<renderer::ConstantBuffer<renderer::MotionBlurData>>(
             m_graphics->getDevice(), m_graphics->getDeviceContext());
 
         m_prevViewProj = DirectX::XMMatrixIdentity();
+
+        LOG_DEBUG("Creating Depth of Field render target...");
+        {
+            renderer::RenderTargetDesc dofDesc;
+            dofDesc.width    = w;
+            dofDesc.height   = h;
+            dofDesc.format   = renderer::RenderTargetFormat::RGBA16_FLOAT;
+            dofDesc.hasDepth = false;
+            m_dofRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), dofDesc);
+        }
+
+        LOG_DEBUG("Creating Depth of Field pass...");
+        m_dofPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/DoF.ps.hlsl");
+
+        m_dofData.focusDistance  = 15.0f;
+        m_dofData.focusRange     = 5.0f;
+        m_dofData.maxBlurRadius  = 8.0f;
+        m_dofData.enabled        = 1;
+        m_dofData.nearZ          = 0.1f;
+        m_dofData.farZ           = 1000.0f;
+        m_dofData.numSamples     = 16;
+        m_dofData._pad           = 0.0f;
+        m_dofCB = std::make_unique<renderer::ConstantBuffer<renderer::DofData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
+
+        LOG_DEBUG("Creating Color Grading LUT texture...");
+        {
+            static constexpr int LUT_SIZE = 16;
+
+            std::vector<DirectX::XMFLOAT4> lutData(LUT_SIZE * LUT_SIZE * LUT_SIZE);
+            for (int b = 0; b < LUT_SIZE; ++b)
+                for (int g = 0; g < LUT_SIZE; ++g)
+                    for (int r = 0; r < LUT_SIZE; ++r) {
+                        int idx        = b * LUT_SIZE * LUT_SIZE + g * LUT_SIZE + r;
+                        lutData[idx].x = static_cast<float>(r) / (LUT_SIZE - 1);
+                        lutData[idx].y = static_cast<float>(g) / (LUT_SIZE - 1);
+                        lutData[idx].z = static_cast<float>(b) / (LUT_SIZE - 1);
+                        lutData[idx].w = 1.0f;
+                    }
+
+            D3D11_TEXTURE3D_DESC lutDesc = {};
+            lutDesc.Width     = LUT_SIZE;
+            lutDesc.Height    = LUT_SIZE;
+            lutDesc.Depth     = LUT_SIZE;
+            lutDesc.MipLevels = 1;
+            lutDesc.Format    = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            lutDesc.Usage     = D3D11_USAGE_DEFAULT;
+            lutDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+            D3D11_SUBRESOURCE_DATA lutInit = {};
+            lutInit.pSysMem          = lutData.data();
+            lutInit.SysMemPitch      = LUT_SIZE * sizeof(DirectX::XMFLOAT4);
+            lutInit.SysMemSlicePitch = LUT_SIZE * LUT_SIZE * sizeof(DirectX::XMFLOAT4);
+
+            if (FAILED(m_graphics->getDevice()->CreateTexture3D(&lutDesc, &lutInit, &m_lutTex)))
+                throw std::runtime_error("Failed to create LUT 3D texture");
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format              = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            srvDesc.ViewDimension       = D3D11_SRV_DIMENSION_TEXTURE3D;
+            srvDesc.Texture3D.MipLevels = 1;
+
+            if (FAILED(m_graphics->getDevice()->CreateShaderResourceView(m_lutTex.Get(), &srvDesc, &m_lutSRV)))
+                throw std::runtime_error("Failed to create LUT SRV");
+        }
+
+        {
+            renderer::SamplerDesc lutSampDesc;
+            lutSampDesc.filter = renderer::FilterMode::Trilinear;
+            lutSampDesc.wrapU  = renderer::WrapMode::Clamp;
+            lutSampDesc.wrapV  = renderer::WrapMode::Clamp;
+            m_lutSampler = std::make_unique<renderer::SamplerState>(
+                m_graphics->getDevice(), m_graphics->getDeviceContext(), lutSampDesc);
+        }
+
+        LOG_DEBUG("Creating Color Grading render target and pass...");
+        {
+            renderer::RenderTargetDesc cgDesc;
+            cgDesc.width    = w;
+            cgDesc.height   = h;
+            cgDesc.format   = renderer::RenderTargetFormat::RGBA8_UNORM;
+            cgDesc.hasDepth = false;
+            m_colorGradingRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), cgDesc);
+        }
+
+        m_colorGradingPass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/ColorGrading.ps.hlsl");
+
+        m_colorGradingData.lutStrength = 1.0f;
+        m_colorGradingData.lutEnabled  = 1;
+        m_colorGradingData._pad0       = 0.0f;
+        m_colorGradingData._pad1       = 0.0f;
+        m_colorGradingCB = std::make_unique<renderer::ConstantBuffer<renderer::ColorGradingData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
+
+        LOG_DEBUG("Creating Vignette + Chromatic Aberration render target and pass...");
+        {
+            renderer::RenderTargetDesc vigDesc;
+            vigDesc.width    = w;
+            vigDesc.height   = h;
+            vigDesc.format   = renderer::RenderTargetFormat::RGBA8_UNORM;
+            vigDesc.hasDepth = false;
+            m_vignetteRT = std::make_unique<renderer::RenderTarget>(m_graphics->getDevice(), vigDesc);
+        }
+
+        m_vignettePass = std::make_unique<renderer::PostProcessPass>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext(), L"shaders/Vignette.ps.hlsl");
+
+        m_vignetteData.innerRadius        = 0.3f;
+        m_vignetteData.outerRadius        = 0.75f;
+        m_vignetteData.intensity          = 0.6f;
+        m_vignetteData.vignetteEnabled    = 1;
+        m_vignetteData.aberrationStrength = 0.003f;
+        m_vignetteData.aberrationEnabled  = 1;
+        m_vignetteData._pad0              = 0.0f;
+        m_vignetteData._pad1              = 0.0f;
+        m_vignetteCB = std::make_unique<renderer::ConstantBuffer<renderer::VignetteData>>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
 
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
@@ -682,6 +810,26 @@ namespace engine::core {
                     m_motionBlurEnabled = !m_motionBlurEnabled;
                     m_motionBlurData.enabled = m_motionBlurEnabled ? 1 : 0;
                     LOG_INFO(m_motionBlurEnabled ? "Motion Blur ON" : "Motion Blur OFF");
+                }
+                if (input.isKeyPressed(Key::G)) {
+                    m_dofEnabled = !m_dofEnabled;
+                    m_dofData.enabled = m_dofEnabled ? 1 : 0;
+                    LOG_INFO(m_dofEnabled ? "DoF ON" : "DoF OFF");
+                }
+                if (input.isKeyPressed(Key::H)) {
+                    m_colorGradingEnabled = !m_colorGradingEnabled;
+                    m_colorGradingData.lutEnabled = m_colorGradingEnabled ? 1 : 0;
+                    LOG_INFO(m_colorGradingEnabled ? "Color Grading ON" : "Color Grading OFF");
+                }
+                if (input.isKeyPressed(Key::J)) {
+                    m_vignetteEnabled = !m_vignetteEnabled;
+                    m_vignetteData.vignetteEnabled = m_vignetteEnabled ? 1 : 0;
+                    LOG_INFO(m_vignetteEnabled ? "Vignette ON" : "Vignette OFF");
+                }
+                if (input.isKeyPressed(Key::K)) {
+                    m_aberrationEnabled = !m_aberrationEnabled;
+                    m_vignetteData.aberrationEnabled = m_aberrationEnabled ? 1 : 0;
+                    LOG_INFO(m_aberrationEnabled ? "Chromatic Aberration ON" : "Chromatic Aberration OFF");
                 }
                 if (input.isKeyPressed(Key::N)) {
                     m_bloomData.intensity = std::min(m_bloomData.intensity + 0.1f, 3.0f);
@@ -906,13 +1054,55 @@ namespace engine::core {
                     hdrInput = m_motionBlurRT.get();
                 }
 
+                {
+                    m_dofData.enabled = m_dofEnabled ? 1 : 0;
+                    m_dofCB->update(m_dofData);
+                    m_dofCB->bindPS(0);
+                    m_sceneRT->bindDepthSRV(ctx, 1);
+                    m_dofPass->render(hdrInput, m_dofRT.get(), m_graphics.get());
+                    m_sceneRT->unbindDepthSRV(ctx, 1);
+
+                    hdrInput = m_dofRT.get();
+                }
+
                 m_postProcessCB->update(m_postProcessData);
                 m_postProcessCB->bindPS(0);
                 m_blitPass->render(hdrInput, m_ldrRT.get(), m_graphics.get());
 
+                renderer::RenderTarget* ldrInput = m_ldrRT.get();
+
+                {
+                    m_colorGradingData.lutEnabled = m_colorGradingEnabled ? 1 : 0;
+                    m_colorGradingCB->update(m_colorGradingData);
+                    m_colorGradingCB->bindPS(0);
+                    {
+                        ID3D11ShaderResourceView* lutSRV = m_lutSRV.Get();
+                        ctx->PSSetShaderResources(1, 1, &lutSRV);
+                    }
+                    m_lutSampler->bindPS(0);
+                    m_colorGradingPass->render(ldrInput, m_colorGradingRT.get(), m_graphics.get());
+                    {
+                        ID3D11ShaderResourceView* nullSRV = nullptr;
+                        ctx->PSSetShaderResources(1, 1, &nullSRV);
+                    }
+                    m_lutSampler->unbindPS(0);
+
+                    ldrInput = m_colorGradingRT.get();
+                }
+
+                {
+                    m_vignetteData.vignetteEnabled   = m_vignetteEnabled   ? 1 : 0;
+                    m_vignetteData.aberrationEnabled = m_aberrationEnabled ? 1 : 0;
+                    m_vignetteCB->update(m_vignetteData);
+                    m_vignetteCB->bindPS(0);
+                    m_vignettePass->render(ldrInput, m_vignetteRT.get(), m_graphics.get());
+
+                    ldrInput = m_vignetteRT.get();
+                }
+
                 m_fxaaCB->update(m_fxaaData);
                 m_fxaaCB->bindPS(0);
-                m_fxaaPass->renderToBackBuffer(m_ldrRT.get(), m_graphics.get());
+                m_fxaaPass->renderToBackBuffer(ldrInput, m_graphics.get());
 
                 m_prevViewProj = viewProj;
 
