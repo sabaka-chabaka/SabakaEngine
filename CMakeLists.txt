@@ -79,6 +79,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/FXAABuffer.h
         src/renderer/BloomBuffer.h
         src/renderer/SSAOBuffer.h
+        src/renderer/MotionBlurBuffer.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
