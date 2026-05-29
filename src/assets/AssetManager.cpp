@@ -6,9 +6,21 @@ namespace engine::assets {
     std::shared_ptr<renderer::Mesh> AssetManager::loadFromDisk<renderer::Mesh>(
         const std::filesystem::path& path)
     {
-        auto mesh = std::make_shared<renderer::Mesh>(
-            io::ObjLoader::load(m_device, m_context, path.string()));
-        return mesh;
+        const std::string ext     = path.extension().string();
+        const std::string pathStr = path.string();
+
+        if (ext == ".smesh") {
+            return std::make_shared<renderer::Mesh>(
+                io::SmeshLoader::load(m_device, m_context, pathStr));
+        }
+
+        const std::string smeshPath = io::MeshImporter::smeshPathFor(pathStr);
+
+        if (io::MeshImporter::needsReimport(pathStr, smeshPath))
+            io::MeshImporter::importObj(pathStr, smeshPath);
+
+        return std::make_shared<renderer::Mesh>(
+            io::SmeshLoader::load(m_device, m_context, smeshPath));
     }
 
     template<>

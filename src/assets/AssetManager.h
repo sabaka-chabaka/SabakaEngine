@@ -5,6 +5,8 @@
 #include "renderer/Texture2D.h"
 #include "renderer/Material.h"
 #include "io/ObjLoader.h"
+#include "io/SmeshLoader.h"
+#include "io/MeshImporter.h"
 #include "core/Logger.h"
 #include <unordered_map>
 #include <string>
