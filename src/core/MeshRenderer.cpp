@@ -14,14 +14,19 @@ namespace engine::core {
     MeshRenderer::~MeshRenderer() = default;
 
     void MeshRenderer::setMesh(renderer::Mesh* mesh)                                          { m_mesh        = mesh; }
+    void MeshRenderer::setMeshHandle(assets::AssetHandle<renderer::Mesh> handle)               { m_meshHandle  = std::move(handle); }
     void MeshRenderer::setMaterial(renderer::Material* material)                              { m_material    = material; }
     void MeshRenderer::setTransformCB(renderer::ConstantBuffer<renderer::TransformData>* cb)  { m_transformCB = cb; }
     void MeshRenderer::setLightCB(renderer::ConstantBuffer<renderer::LightBuffer>* cb)        { m_lightCB     = cb; }
     void MeshRenderer::setCamera(renderer::Camera* camera)                                    { m_camera      = camera; }
-    void MeshRenderer::setFrustum(math::Frustum* frustum)                               { m_frustum     = frustum; }
+    void MeshRenderer::setFrustum(math::Frustum* frustum)                                     { m_frustum     = frustum; }
 
     renderer::Mesh*     MeshRenderer::getMesh()     const { return m_mesh; }
     renderer::Material* MeshRenderer::getMaterial() const { return m_material; }
+
+    const assets::AssetHandle<renderer::Mesh>& MeshRenderer::getMeshHandle() const {
+        return m_meshHandle;
+    }
 
     void MeshRenderer::onRender() {
         if (!m_material || !m_transformCB || !m_camera || !owner) return;
@@ -48,6 +53,11 @@ namespace engine::core {
         }
 
         renderer::Mesh* meshToDraw = m_mesh;
+
+        if (!meshToDraw) {
+            if (auto locked = m_meshHandle.lock())
+                meshToDraw = locked.get();
+        }
 
         if (auto* lod = owner->getComponent<LodComponent>()) {
             XMFLOAT3 camPos = m_camera->getPosition();
