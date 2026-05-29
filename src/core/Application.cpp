@@ -507,8 +507,8 @@ namespace engine::core {
 
         m_motionBlurData.prevViewProj = DirectX::XMMatrixIdentity();
         m_motionBlurData.invViewProj  = DirectX::XMMatrixIdentity();
-        m_motionBlurData.strength     = 1.0f;
-        m_motionBlurData.numSamples   = 8;
+        m_motionBlurData.strength     = 128.0f;
+        m_motionBlurData.numSamples   = 16;
         m_motionBlurData.enabled      = 1;
         m_motionBlurData._pad         = 0.0f;
         m_motionBlurCB = std::make_unique<renderer::ConstantBuffer<renderer::MotionBlurData>>(
