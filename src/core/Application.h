@@ -27,6 +27,7 @@
 #include "renderer/MotionBlurBuffer.h"
 #include "renderer/DofBuffer.h"
 #include "renderer/ColorGradingBuffer.h"
+#include "assets/AssetManager.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -150,6 +151,7 @@ namespace engine::core {
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
         std::unique_ptr<renderer::Material>                                 m_cubeMaterial;
+        std::unique_ptr<assets::AssetManager>                               m_assetManager;
 
         math::Frustum                                                       m_frustum;
 

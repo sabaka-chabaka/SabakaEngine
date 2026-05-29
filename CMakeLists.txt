@@ -84,6 +84,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/renderer/ColorGradingBuffer.h
         src/assets/AssetId.h
         src/assets/AssetHandle.h
+        src/assets/AssetManager.cpp
+        src/assets/AssetManager.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)

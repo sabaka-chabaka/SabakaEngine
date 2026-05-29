@@ -644,6 +644,9 @@ namespace engine::core {
         m_vignetteCB = std::make_unique<renderer::ConstantBuffer<renderer::VignetteData>>(
             m_graphics->getDevice(), m_graphics->getDeviceContext());
 
+        m_assetManager = std::make_unique<assets::AssetManager>(
+            m_graphics->getDevice(), m_graphics->getDeviceContext());
+
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
 
