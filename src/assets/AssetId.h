@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace engine::asset {
+namespace engine::assets {
 
     using AssetId = uint64_t;
 
@@ -16,8 +16,8 @@ namespace engine::asset {
 
 namespace std {
     template<>
-    struct hash<engine::asset::AssetId> {
-        size_t operator()(engine::asset::AssetId id) const noexcept {
+    struct hash<engine::assets::AssetId> {
+        size_t operator()(engine::assets::AssetId id) const noexcept {
             return std::hash<uint64_t>{}(id);
         }
     };
