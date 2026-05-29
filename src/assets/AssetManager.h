@@ -77,6 +77,8 @@ namespace engine::assets {
         template<typename T>
         std::shared_ptr<T> loadFromDisk(const std::filesystem::path& path);
 
+        void loadAsyncMeshInternal(std::shared_ptr<PendingMesh> pending, std::string pathStr);
+
         ID3D11Device*                    m_device;
         ID3D11DeviceContext*             m_context;
         std::unique_ptr<ThreadPool>      m_threadPool;
@@ -86,7 +88,7 @@ namespace engine::assets {
         std::unordered_map<AssetId, std::string>         m_idToPath;
 
         std::mutex                                       m_pendingMutex;
-        std::vector<std::unique_ptr<PendingMesh>>        m_pendingUploads;
+        std::vector<std::shared_ptr<PendingMesh>>        m_pendingUploads;
     };
 
 }

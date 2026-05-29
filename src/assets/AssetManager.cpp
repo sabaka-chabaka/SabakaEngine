@@ -1,4 +1,10 @@
+#define NOMINMAX
 #include "assets/AssetManager.h"
+#include "io/SmeshFormat.h"
+#include <filesystem>
+#include <cstdio>
+#include <cstring>
+#include <stdexcept>
 
 namespace engine::assets {
 
@@ -79,64 +85,68 @@ namespace engine::assets {
 
         LOG_DEBUG("AssetManager: async loading " + key);
 
-        auto pending = std::make_unique<PendingMesh>();
+        auto pending = std::make_shared<PendingMesh>();
         pending->key = key;
         pending->id  = nextId();
 
         std::future<AssetHandle<renderer::Mesh>> fut = pending->promise.get_future();
 
-        PendingMesh* pendingPtr = pending.get();
-
         {
             std::unique_lock lock(m_pendingMutex);
-            m_pendingUploads.push_back(std::move(pending));
+            m_pendingUploads.push_back(pending);
         }
 
         const std::string pathStr = path.string();
 
-        m_threadPool->submit([this, pendingPtr, pathStr] {
-            try {
-                const std::string ext       = std::filesystem::path(pathStr).extension().string();
-                const std::string smeshPath = ext == ".smesh"
-                    ? pathStr
-                    : io::MeshImporter::smeshPathFor(pathStr);
-
-                if (ext != ".smesh" && io::MeshImporter::needsReimport(pathStr, smeshPath))
-                    io::MeshImporter::importObj(pathStr, smeshPath);
-
-                FILE* f = fopen(smeshPath.c_str(), "rb");
-                if (!f) throw std::runtime_error("cannot open " + smeshPath);
-
-                io::SmeshHeader hdr{};
-                fread(&hdr, sizeof(hdr), 1, f);
-
-                pendingPtr->vertices.resize(hdr.vertexCount);
-                pendingPtr->indices.resize(hdr.indexCount);
-                fread(pendingPtr->vertices.data(), sizeof(renderer::Vertex), hdr.vertexCount, f);
-                fread(pendingPtr->indices.data(),  sizeof(uint32_t),         hdr.indexCount,  f);
-                fclose(f);
-
-                LOG_DEBUG("AssetManager: async disk read done for " + smeshPath);
-            } catch (const std::exception& e) {
-                pendingPtr->promise.set_exception(std::current_exception());
-            }
+        m_threadPool->submit([this, pending, pathStr] {
+            loadAsyncMeshInternal(pending, pathStr);
         });
 
         return AsyncAssetHandle<renderer::Mesh>(std::move(fut));
     }
 
+    void AssetManager::loadAsyncMeshInternal(std::shared_ptr<PendingMesh> pendingPtr, std::string pathStr)
+    {
+        try {
+            const std::string ext       = std::filesystem::path(pathStr).extension().string();
+            const std::string smeshPath = ext == ".smesh"
+                ? pathStr
+                : io::MeshImporter::smeshPathFor(pathStr);
+
+            if (ext != ".smesh" && io::MeshImporter::needsReimport(pathStr, smeshPath))
+                io::MeshImporter::importObj(pathStr, smeshPath);
+
+            FILE* f = ::fopen(smeshPath.c_str(), "rb");
+            if (!f) throw std::runtime_error("cannot open " + smeshPath);
+
+            io::SmeshHeader myHdr;
+            ::memset(&myHdr, 0, sizeof(myHdr));
+            ::fread(&myHdr, sizeof(myHdr), 1, f);
+
+            pendingPtr->vertices.resize(myHdr.vertexCount);
+            pendingPtr->indices.resize(myHdr.indexCount);
+            ::fread(pendingPtr->vertices.data(), sizeof(renderer::Vertex), myHdr.vertexCount, f);
+            ::fread(pendingPtr->indices.data(),  sizeof(uint32_t),         myHdr.indexCount,  f);
+            ::fclose(f);
+
+            LOG_DEBUG("AssetManager: async disk read done for " + smeshPath);
+        } catch (const std::exception& e) {
+            pendingPtr->promise.set_exception(std::current_exception());
+        }
+    }
+
     void AssetManager::flushPendingUploads()
     {
-        std::vector<std::unique_ptr<PendingMesh>> ready;
+        std::vector<std::shared_ptr<PendingMesh>> ready;
 
         {
             std::unique_lock lock(m_pendingMutex);
-            std::vector<std::unique_ptr<PendingMesh>> remaining;
+            std::vector<std::shared_ptr<PendingMesh>> remaining;
             for (auto& p : m_pendingUploads) {
                 if (!p->vertices.empty())
-                    ready.push_back(std::move(p));
+                    ready.push_back(p);
                 else
-                    remaining.push_back(std::move(p));
+                    remaining.push_back(p);
             }
             m_pendingUploads = std::move(remaining);
         }

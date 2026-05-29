@@ -1,17 +1,14 @@
 #pragma once
+#define NOMINMAX
+#include <algorithm>
 #include <vector>
 #include <queue>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <functional>
-#include <algorithm>
 #include <future>
 #include <memory>
-
-#ifdef max
-#undef max
-#endif
 
 namespace engine {
 
@@ -20,7 +17,7 @@ namespace engine {
         explicit ThreadPool(size_t threadCount = 0) {
             size_t n = threadCount > 0
                 ? threadCount
-                : std::max(1u, std::thread::hardware_concurrency() - 1);
+                : (std::max)(1u, std::thread::hardware_concurrency() - 1);
 
             m_workers.reserve(n);
             for (size_t i = 0; i < n; ++i) {

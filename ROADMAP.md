@@ -94,7 +94,7 @@
 [✓] 62. Asset Manager (загрузка, кэш, ref counting)
 [✓] 63. Бинарный формат мешей (.smesh, быстрее OBJ)
 [✓] 64. Asset Import Pipeline (OBJ/GLTF → .smesh)
-[ ] 65. Асинхронная загрузка (std::future + thread pool)
+[✓] 65. Асинхронная загрузка (std::future + thread pool)
 [ ] 66. Hot Reload шейдеров (FileWatcher + перекомпиляция)
 [ ] 67. Hot Reload текстур
 [ ] 68. Virtual File System (пути через алиасы assets://)

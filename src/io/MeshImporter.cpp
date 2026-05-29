@@ -1,4 +1,4 @@
-#define TINYOBJLOADER_IMPLEMENTATION
+#define NOMINMAX
 #include "io/MeshImporter.h"
 #include "io/SmeshFormat.h"
 #include "renderer/Mesh.h"
@@ -140,14 +140,14 @@ namespace engine::io {
 
         computeTangents(vertices, indices);
 
-        constexpr float kMax = std::numeric_limits<float>::max();
+        constexpr float kMax = (std::numeric_limits<float>::max)();
         float minX =  kMax, minY =  kMax, minZ =  kMax;
         float maxX = -kMax, maxY = -kMax, maxZ = -kMax;
 
         for (auto& v : vertices) {
-            minX = std::min(minX, v.x); maxX = std::max(maxX, v.x);
-            minY = std::min(minY, v.y); maxY = std::max(maxY, v.y);
-            minZ = std::min(minZ, v.z); maxZ = std::max(maxZ, v.z);
+            minX = (std::min)(minX, v.x); maxX = (std::max)(maxX, v.x);
+            minY = (std::min)(minY, v.y); maxY = (std::max)(maxY, v.y);
+            minZ = (std::min)(minZ, v.z); maxZ = (std::max)(maxZ, v.z);
         }
 
         SmeshHeader hdr{};
