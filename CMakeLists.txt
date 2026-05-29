@@ -86,6 +86,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/assets/AssetHandle.h
         src/assets/AssetManager.cpp
         src/assets/AssetManager.h
+        src/io/SmeshFormat.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
