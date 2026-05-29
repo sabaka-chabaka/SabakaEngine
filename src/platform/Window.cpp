@@ -76,6 +76,7 @@ namespace engine::platform {
     int   Window::getHeight()       const { return m_height; }
 
     void Window::setResizeCallback(std::function<void(int, int)> callback) {
+        LOG_DEBUG("Window resize callback set");
         m_resizeCallback = std::move(callback);
     }
 
@@ -96,7 +97,12 @@ namespace engine::platform {
                     return 0;
 
                 case WM_KILLFOCUS:
+                    LOG_DEBUG("Window lost focus");
                     InputSystem::get().onKillFocus();
+                    return 0;
+
+                case WM_SETFOCUS:
+                    LOG_DEBUG("Window gained focus");
                     return 0;
 
                 case WM_SIZE:

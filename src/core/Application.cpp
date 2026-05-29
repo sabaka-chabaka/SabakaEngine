@@ -558,6 +558,10 @@ namespace engine::core {
         LOG_INFO("Scene resources ready");
     }
 
+    Application::~Application() {
+        LOG_INFO("Shutting down SabakaEngine");
+    }
+
     int Application::run() {
         using Clock    = std::chrono::high_resolution_clock;
         using Duration = std::chrono::duration<float>;

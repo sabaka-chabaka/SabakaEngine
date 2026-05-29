@@ -24,6 +24,7 @@ namespace engine::renderer {
                 err += " — ";
                 err += stbi_failure_reason();
             }
+            LOG_ERROR(err);
             throw std::runtime_error(err);
         }
 
@@ -62,6 +63,7 @@ namespace engine::renderer {
             hr = device->CreateTexture2D(&texDesc, nullptr, &m_texture);
             if (FAILED(hr)) {
                 stbi_image_free(data);
+                LOG_ERROR("Failed to create texture2D for mip gen: " + path);
                 throw std::runtime_error("Failed to create texture2D for mip gen");
             }
 
@@ -75,6 +77,7 @@ namespace engine::renderer {
             hr = device->CreateTexture2D(&texDesc, &initData, &m_texture);
             if (FAILED(hr)) {
                 stbi_image_free(data);
+                LOG_ERROR("Failed to create texture2D: " + path);
                 throw std::runtime_error("Failed to create texture2D: " + path);
             }
         }

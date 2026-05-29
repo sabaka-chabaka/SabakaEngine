@@ -68,6 +68,7 @@ Shader::Shader(ID3D11Device*                        device,
             &m_inputLayout
         );
         if (FAILED(hr)) {
+            LOG_ERROR("Failed to create input layout");
             throw std::runtime_error("Failed to create input layout");
         }
     }

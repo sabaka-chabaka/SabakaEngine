@@ -38,7 +38,7 @@ namespace engine::core {
     class Application {
     public:
         Application();
-        ~Application() = default;
+        ~Application();
 
         Application(const Application&)            = delete;
         Application& operator=(const Application&) = delete;

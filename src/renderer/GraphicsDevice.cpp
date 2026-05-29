@@ -105,6 +105,7 @@ namespace engine::renderer {
     }
 
     void GraphicsDevice::createRenderTargetView() {
+        LOG_DEBUG("Creating RenderTargetView");
         ComPtr<ID3D11Texture2D> backBuffer;
         if (FAILED(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
             throw std::runtime_error("Failed to get back buffer");
@@ -118,6 +119,7 @@ namespace engine::renderer {
     }
 
     void GraphicsDevice::createDepthStencilBuffer(int width, int height) {
+        LOG_DEBUG("Creating depth stencil buffer: " + std::to_string(width) + "x" + std::to_string(height));
         D3D11_TEXTURE2D_DESC texDesc = {};
         texDesc.Width            = static_cast<UINT>(width);
         texDesc.Height           = static_cast<UINT>(height);

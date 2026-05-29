@@ -24,6 +24,7 @@ namespace engine::renderer {
 
             HRESULT hr = device->CreateBuffer(&desc, &data, &m_vertexBuffer);
             if (FAILED(hr)) {
+                LOG_ERROR("Failed to create vertex buffer");
                 throw std::runtime_error("Failed to create vertex buffer");
             }
 
@@ -42,6 +43,7 @@ namespace engine::renderer {
 
             HRESULT hr = device->CreateBuffer(&desc, &data, &m_indexBuffer);
             if (FAILED(hr)) {
+                LOG_ERROR("Failed to create index buffer");
                 throw std::runtime_error("Failed to create index buffer");
             }
 

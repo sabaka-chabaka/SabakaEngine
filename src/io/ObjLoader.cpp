@@ -1,6 +1,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../third_party/tinyobjloader/tiny_obj_loader.h"
 #include "ObjLoader.h"
+#include "core/Logger.h"
 #include <DirectXMath.h>
 #include <map>
 #include <stdexcept>
@@ -87,8 +88,16 @@ namespace engine::io {
         std::string warn, err;
 
         bool ok = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str());
-        if (!ok)
+        if (!ok) {
+            LOG_ERROR("ObjLoader: failed to load " + path + ": " + err);
             throw std::runtime_error("ObjLoader: " + err + " (" + path + ")");
+        }
+
+        if (!warn.empty()) {
+            LOG_WARN("ObjLoader: " + warn);
+        }
+
+        LOG_INFO("Loading model: " + path);
 
         std::map<ObjIndex, unsigned int> indexMap;
         std::vector<renderer::Vertex>    vertices;
@@ -135,9 +144,12 @@ namespace engine::io {
             }
         }
 
-        if (vertices.empty())
+        if (vertices.empty()) {
+            LOG_ERROR("ObjLoader: no geometry in " + path);
             throw std::runtime_error("ObjLoader: no geometry in: " + path);
+        }
 
+        LOG_DEBUG("Model " + path + " loaded: " + std::to_string(vertices.size()) + " vertices, " + std::to_string(indices.size()) + " indices");
         computeTangents(vertices, indices);
 
         return renderer::Mesh(device, context, vertices, indices);
