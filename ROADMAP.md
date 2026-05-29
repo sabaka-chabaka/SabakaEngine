@@ -91,7 +91,7 @@
 ### Блок 8 — Asset система
 ```
 [✓] 61. Asset Handle (UUID + слабая ссылка)
-[ ] 62. Asset Manager (загрузка, кэш, ref counting)
+[✓] 62. Asset Manager (загрузка, кэш, ref counting)
 [ ] 63. Бинарный формат мешей (.smesh, быстрее OBJ)
 [ ] 64. Asset Import Pipeline (OBJ/GLTF → .smesh)
 [ ] 65. Асинхронная загрузка (std::future + thread pool)
