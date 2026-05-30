@@ -95,6 +95,7 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/assets/AsyncAssetHandle.h
         src/core/VFS.h
         src/core/FileWatcher.h
+        src/physics/ColliderShape.h
 )
 
 target_include_directories(SabakaEngine PRIVATE src)
