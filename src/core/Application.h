@@ -30,6 +30,8 @@
 #include "assets/AssetManager.h"
 #include "core/VFS.h"
 #include "core/FileWatcher.h"
+#include "physics/PhysicsWorld.h"
+#include "physics/RigidBody.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -163,6 +165,8 @@ namespace engine::core {
         std::vector<std::string>                                            m_pendingTextureReloads;
 
         math::Frustum                                                       m_frustum;
+
+        std::unique_ptr<physics::PhysicsWorld>                              m_physicsWorld;
 
         Entity*                                                             m_cubeEntity = nullptr;
     };

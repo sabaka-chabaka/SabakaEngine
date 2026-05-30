@@ -103,11 +103,11 @@
 ### Блок 9 — Физика
 ```
 [✓] 69. Коллайдеры (Box, Sphere, Capsule — структуры данных)
-[✓] 70. Интеграция PhysX или Jolt Physics
-[ ] 71. RigidBody компонент
-[ ] 72. Collision Callbacks (onCollisionEnter/Stay/Exit)
-[ ] 73. Raycasting (мышь → мир, picking объектов)
-[ ] 74. CharacterController (капсула + движение без физики)
+[✓] 70. Интеграция PhysX
+[✓] 71. RigidBody компонент
+[✓] 72. Collision Callbacks (onCollisionEnter/Stay/Exit)
+[x] 73. Raycasting (мышь → мир, picking объектов)
+[x] 74. CharacterController (капсула + движение без физики)
 ```
 
 ### Блок 10 — Audio

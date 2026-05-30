@@ -647,6 +647,9 @@ namespace engine::core {
         m_assetManager = std::make_unique<assets::AssetManager>(
             m_graphics->getDevice(), m_graphics->getDeviceContext());
 
+        LOG_DEBUG("Initializing PhysicsWorld...");
+        m_physicsWorld = std::make_unique<physics::PhysicsWorld>();
+
         LOG_DEBUG("Mounting VFS paths...");
         VFS::get().mount("assets",  exeDir);
         VFS::get().mount("shaders", exeDir + "/shaders");
@@ -878,6 +881,23 @@ namespace engine::core {
                     deltaTime * 0.8f,
                     deltaTime * 0.2f
                 );
+
+                m_physicsWorld->simulate(deltaTime);
+
+                for (const auto& ev : m_physicsWorld->getContactEvents()) {
+                    auto dispatchTo = [&](uint64_t selfId, uint64_t otherId) {
+                        Entity* e = m_scene->findById(selfId);
+                        if (!e) return;
+                        if (auto* rb = e->getComponent<physics::RigidBody>()) {
+                            using T = physics::ContactEvent::Type;
+                            if      (ev.type == T::Enter) rb->onCollisionEnter(otherId);
+                            else if (ev.type == T::Stay)  rb->onCollisionStay(otherId);
+                            else if (ev.type == T::Exit)  rb->onCollisionExit(otherId);
+                        }
+                    };
+                    dispatchTo(ev.entityA, ev.entityB);
+                    dispatchTo(ev.entityB, ev.entityA);
+                }
 
                 m_assetManager->flushPendingUploads();
 
