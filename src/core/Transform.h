@@ -28,7 +28,10 @@ namespace engine::core {
 
         XMFLOAT3 getPosition()      const;
         XMFLOAT3 getRotationEuler() const;
+        XMFLOAT4 getRotationQuat()  const;
         XMFLOAT3 getScale()         const;
+
+        void setRotationQuat(const XMFLOAT4& quat);
 
         XMMATRIX getWorldMatrix()  const;
         XMMATRIX getNormalMatrix() const;

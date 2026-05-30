@@ -94,6 +94,15 @@ namespace engine::core {
         return { pitch, yaw, roll };
     }
 
+    XMFLOAT4 Transform::getRotationQuat() const {
+        return m_rotation;
+    }
+
+    void Transform::setRotationQuat(const XMFLOAT4& quat) {
+        m_rotation = quat;
+        markDirty();
+    }
+
     XMFLOAT3 Transform::getScale() const {
         return m_scale;
     }

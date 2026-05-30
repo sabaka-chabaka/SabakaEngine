@@ -100,6 +100,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/physics/ColliderShape.h
         src/physics/PhysicsWorld.cpp
         src/physics/PhysicsWorld.h
+        src/physics/RigidBody.cpp
+        src/physics/RigidBody.h
 )
 
 target_include_directories(SabakaEngine PRIVATE
