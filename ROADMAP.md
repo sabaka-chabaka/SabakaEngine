@@ -112,11 +112,11 @@
 
 ### Блок 10 — Audio
 ```
-[ ] 75. Интеграция XAudio2 (Windows native)
-[ ] 76. AudioClip (загрузка WAV/OGG)
-[ ] 77. AudioSource компонент (play/pause/stop/loop)
-[ ] 78. 3D Audio (позиционный звук, затухание)
-[ ] 79. AudioMixer (каналы, volume, pitch)
+[✓] 75. Интеграция XAudio2 (Windows native)
+[✓] 76. AudioClip (загрузка WAV/OGG)
+[✓] 77. AudioSource компонент (play/pause/stop/loop)
+[✓] 78. 3D Audio (позиционный звук, затухание)
+[✓] 79. AudioMixer (каналы, volume, pitch)
 ```
 
 ### Блок 11 — Qt Editor

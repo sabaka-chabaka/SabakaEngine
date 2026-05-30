@@ -32,6 +32,10 @@
 #include "core/FileWatcher.h"
 #include "physics/PhysicsWorld.h"
 #include "physics/RigidBody.h"
+#include "audio/AudioEngine.h"
+#include "audio/AudioMixer.h"
+#include "audio/AudioClip.h"
+#include "audio/AudioSource.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -167,6 +171,9 @@ namespace engine::core {
         math::Frustum                                                       m_frustum;
 
         std::unique_ptr<physics::PhysicsWorld>                              m_physicsWorld;
+
+        std::unique_ptr<audio::AudioEngine>                                 m_audioEngine;
+        std::unique_ptr<audio::AudioMixer>                                  m_audioMixer;
 
         Entity*                                                             m_cubeEntity = nullptr;
     };

@@ -3,6 +3,10 @@
 #include "core/Logger.h"
 #include "math/AABB.h"
 #include "platform/Input.h"
+#include "audio/AudioEngine.h"
+#include "audio/AudioMixer.h"
+#include "audio/AudioClip.h"
+#include "audio/AudioSource.h"
 #include <DirectXMath.h>
 #include <chrono>
 #include <cmath>
@@ -650,6 +654,10 @@ namespace engine::core {
         LOG_DEBUG("Initializing PhysicsWorld...");
         m_physicsWorld = std::make_unique<physics::PhysicsWorld>();
 
+        LOG_DEBUG("Initializing AudioEngine...");
+        m_audioEngine = std::make_unique<audio::AudioEngine>();
+        m_audioMixer  = std::make_unique<audio::AudioMixer>(m_audioEngine.get());
+
         LOG_DEBUG("Mounting VFS paths...");
         VFS::get().mount("assets",  exeDir);
         VFS::get().mount("shaders", exeDir + "/shaders");
@@ -900,6 +908,8 @@ namespace engine::core {
                 }
 
                 m_assetManager->flushPendingUploads();
+
+                m_audioEngine->update(deltaTime);
 
                 {
                     std::vector<std::string> shaderReloads;
