@@ -115,6 +115,7 @@ target_link_libraries(SabakaEngine PRIVATE
         d3d11
         dxgi
         d3dcompiler
+        xaudio2
         ${PHYSX_ROOT}/lib/PhysX_64.lib
         ${PHYSX_ROOT}/lib/PhysXCommon_64.lib
         ${PHYSX_ROOT}/lib/PhysXFoundation_64.lib

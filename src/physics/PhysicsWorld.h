@@ -6,7 +6,7 @@
 #include <functional>
 #include <cstdint>
 
-#include <physx/PxPhysicsAPI.h>
+#include <../third_party/PhysX-sdk/include/physx/PxPhysicsAPI.h>
 
 namespace engine::physics {
     using namespace DirectX;

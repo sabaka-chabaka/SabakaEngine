@@ -3,7 +3,7 @@
 #include "core/Entity.h"
 #include "core/Transform.h"
 #include "core/Logger.h"
-#include <physx/PxPhysicsAPI.h>
+#include <../third_party/PhysX-sdk/include/physx/PxPhysicsAPI.h>
 
 using namespace physx;
 using namespace DirectX;
