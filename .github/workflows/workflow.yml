@@ -8,8 +8,28 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:/vcpkg/installed
+            C:/vcpkg/packages
+            C:/vcpkg/buildtrees
+          key: vcpkg-physx-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            vcpkg-physx-${{ runner.os }}-
+
+      - name: Install PhysX via vcpkg
+        run: |
+          cd C:/vcpkg
+          git pull
+          ./bootstrap-vcpkg.bat -disableMetrics
+          ./vcpkg install physx:x64-windows
+        shell: powershell
 
       - name: Configure MSVC environment
         uses: ilammy/msvc-dev-cmd@v1
@@ -17,7 +37,14 @@ jobs:
           arch: x64
 
       - name: Configure CMake
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" -S .
+        run: |
+          cmake -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_CXX_STANDARD=20 `
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" `
+            -DPHYSX_ROOT="C:/vcpkg/installed/x64-windows" `
+            -S .
+        shell: powershell
 
       - name: Build
         run: cmake --build build --config Release

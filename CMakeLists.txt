@@ -3,7 +3,9 @@ project(SabakaEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(PHYSX_ROOT "D:/CLionProjects/SabakaEngine/third_party/PhysX-sdk")
+if(NOT DEFINED PHYSX_ROOT)
+    set(PHYSX_ROOT "D:/CLionProjects/SabakaEngine/third_party/PhysX-sdk")
+endif()
 
 add_executable(SabakaEngine WIN32 src/main.cpp
         src/platform/Window.cpp
