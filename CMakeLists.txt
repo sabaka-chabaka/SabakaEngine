@@ -112,6 +112,8 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/audio/AudioSource.h
         src/audio/AudioMixer.cpp
         src/audio/AudioMixer.h
+        src/runtime/EngineRuntime.cpp
+        src/runtime/EngineRuntime.h
 )
 
 target_include_directories(SabakaEngine PRIVATE
