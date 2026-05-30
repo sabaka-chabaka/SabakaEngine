@@ -19,7 +19,7 @@ namespace engine::audio {
 
         IXAudio2*               getXAudio2()      const { return m_xaudio2.Get(); }
         IXAudio2MasteringVoice* getMasterVoice()  const { return m_masterVoice; }
-        const X3DAUDIO_HANDLE&  getX3DHandle()    const { return m_x3dHandle; }
+        const BYTE*             getX3DHandle()    const { return m_x3dHandle; }
 
         uint32_t getOutputChannels() const { return m_outputChannels; }
 
@@ -33,4 +33,5 @@ namespace engine::audio {
         uint32_t                         m_outputChannels = 2;
         float                            m_masterVolume   = 1.f;
     };
+
 }

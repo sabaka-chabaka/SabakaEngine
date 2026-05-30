@@ -539,7 +539,7 @@ namespace engine::core {
         XMMATRIX viewProj   = XMMatrixMultiply(view, projection);
         XMMATRIX invViewProj = XMMatrixInverse(nullptr, viewProj);
 
-        m_frustum.buildFromViewProjection(view * projection);
+        m_frustum.buildFromViewProjection(XMMatrixMultiply(view, projection));
 
         m_lightBuffer.viewPos = m_camera->getPosition();
         m_lightCB->update(m_lightBuffer);

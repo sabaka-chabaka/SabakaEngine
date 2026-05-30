@@ -42,7 +42,7 @@ namespace engine::renderer {
         XMVECTOR dir    = XMVector3Normalize(XMLoadFloat3(&lightDir));
         XMVECTOR center = XMLoadFloat3(&sceneCenter);
 
-        XMVECTOR lightPos = center - dir * m_desc.shadowDistance;
+        XMVECTOR lightPos = XMVectorSubtract(center, XMVectorScale(dir, m_desc.shadowDistance));
 
         XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
         if (fabsf(XMVectorGetY(dir)) > 0.99f)
@@ -56,7 +56,7 @@ namespace engine::renderer {
             m_desc.nearZ, m_desc.farZ
         );
 
-        m_shadowData.lightSpaceMatrix = XMMatrixTranspose(lightView * lightProj);
+        m_shadowData.lightSpaceMatrix = XMMatrixTranspose(XMMatrixMultiply(lightView, lightProj));
         XMStoreFloat3(&m_shadowData.lightDir, dir);
         m_shadowData.shadowBias = m_desc.dynamicBias;
 

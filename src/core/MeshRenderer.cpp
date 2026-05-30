@@ -73,7 +73,7 @@ namespace engine::core {
             }
 
             XMVECTOR objVec  = XMLoadFloat3(&center);
-            float    dist    = XMVectorGetX(XMVector3Length(camVec - objVec));
+            float    dist    = XMVectorGetX(XMVector3Length(XMVectorSubtract(camVec, objVec)));
             renderer::Mesh* lodMesh = lod->selectMesh(dist);
             if (lodMesh) meshToDraw = lodMesh;
         }

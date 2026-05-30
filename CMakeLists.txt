@@ -7,7 +7,12 @@ if(NOT DEFINED PHYSX_ROOT)
     set(PHYSX_ROOT "D:/CLionProjects/SabakaEngine/third_party/PhysX-sdk")
 endif()
 
-add_executable(SabakaEngine WIN32 src/main.cpp
+if(NOT DEFINED QT_ROOT)
+    set(QT_ROOT "D:/Qt/6.11.1/msvc2022_64")
+endif()
+list(APPEND CMAKE_PREFIX_PATH "${QT_ROOT}")
+
+set(ENGINE_SOURCES
         src/platform/Window.cpp
         src/platform/Window.h
         src/renderer/GraphicsDevice.cpp
@@ -112,16 +117,9 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/audio/AudioSource.h
         src/audio/AudioMixer.cpp
         src/audio/AudioMixer.h
-        src/runtime/EngineRuntime.cpp
-        src/runtime/EngineRuntime.h
 )
 
-target_include_directories(SabakaEngine PRIVATE
-        src
-        ${PHYSX_ROOT}/include
-)
-
-target_link_libraries(SabakaEngine PRIVATE
+set(ENGINE_LIBS
         d3d11
         dxgi
         d3dcompiler
@@ -139,26 +137,96 @@ target_link_libraries(SabakaEngine PRIVATE
         ${PHYSX_ROOT}/lib/PhysXTask_static_64.lib
 )
 
-add_custom_command(TARGET SabakaEngine POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/shaders"
-        "$<TARGET_FILE_DIR:SabakaEngine>/shaders"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/textures"
-        "$<TARGET_FILE_DIR:SabakaEngine>/textures"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/models"
-        "$<TARGET_FILE_DIR:SabakaEngine>/models"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PHYSX_ROOT}/bin/PhysX_64.dll"
-        "$<TARGET_FILE_DIR:SabakaEngine>"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PHYSX_ROOT}/bin/PhysXCommon_64.dll"
-        "$<TARGET_FILE_DIR:SabakaEngine>"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PHYSX_ROOT}/bin/PhysXFoundation_64.dll"
-        "$<TARGET_FILE_DIR:SabakaEngine>"
-        COMMENT "Copying shaders, textures, models and PhysX DLLs to output directory"
+add_library(SabakaEngineLib STATIC ${ENGINE_SOURCES})
+
+target_include_directories(SabakaEngineLib PUBLIC
+        src
+        ${PHYSX_ROOT}/include
 )
 
-install(TARGETS SabakaEngine DESTINATION .)
+target_link_libraries(SabakaEngineLib PUBLIC ${ENGINE_LIBS})
+
+add_executable(SabakaRuntime WIN32
+        src/main.cpp
+        src/runtime/EngineRuntime.cpp
+        src/runtime/EngineRuntime.h
+)
+
+target_include_directories(SabakaRuntime PRIVATE src)
+target_link_libraries(SabakaRuntime PRIVATE SabakaEngineLib)
+
+add_custom_command(TARGET SabakaRuntime POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/shaders"
+        "$<TARGET_FILE_DIR:SabakaRuntime>/shaders"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/textures"
+        "$<TARGET_FILE_DIR:SabakaRuntime>/textures"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/models"
+        "$<TARGET_FILE_DIR:SabakaRuntime>/models"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_ROOT}/bin/PhysX_64.dll"
+        "$<TARGET_FILE_DIR:SabakaRuntime>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_ROOT}/bin/PhysXCommon_64.dll"
+        "$<TARGET_FILE_DIR:SabakaRuntime>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_ROOT}/bin/PhysXFoundation_64.dll"
+        "$<TARGET_FILE_DIR:SabakaRuntime>"
+        COMMENT "Copying assets and PhysX DLLs to SabakaRuntime output"
+)
+
+find_package(Qt6 COMPONENTS Core Widgets QUIET)
+
+if(Qt6_FOUND)
+    message(STATUS "Qt6 found — building SabakaEditor")
+
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+    set(CMAKE_AUTOUIC ON)
+
+    add_executable(SabakaEditor
+            src/editor/main.cpp
+            src/editor/MainWindow.cpp
+            src/editor/MainWindow.h
+            src/editor/ViewportWindow.cpp
+            src/editor/ViewportWindow.h
+            src/editor/EditorApplication.cpp
+            src/editor/EditorApplication.h
+    )
+
+    target_include_directories(SabakaEditor PRIVATE src)
+
+    target_link_libraries(SabakaEditor PRIVATE
+            SabakaEngineLib
+            Qt6::Core
+            Qt6::Widgets
+    )
+
+    add_custom_command(TARGET SabakaEditor POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/shaders"
+            "$<TARGET_FILE_DIR:SabakaEditor>/shaders"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/textures"
+            "$<TARGET_FILE_DIR:SabakaEditor>/textures"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/models"
+            "$<TARGET_FILE_DIR:SabakaEditor>/models"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PHYSX_ROOT}/bin/PhysX_64.dll"
+            "$<TARGET_FILE_DIR:SabakaEditor>"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PHYSX_ROOT}/bin/PhysXCommon_64.dll"
+            "$<TARGET_FILE_DIR:SabakaEditor>"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PHYSX_ROOT}/bin/PhysXFoundation_64.dll"
+            "$<TARGET_FILE_DIR:SabakaEditor>"
+            COMMENT "Copying assets and PhysX DLLs to SabakaEditor output"
+    )
+else()
+    message(STATUS "Qt6 not found — SabakaEditor will not be built")
+endif()
+
+install(TARGETS SabakaRuntime DESTINATION .)

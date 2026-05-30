@@ -1,8 +1,10 @@
+#define NOMINMAX
 #include "audio/AudioSource.h"
 #include "audio/AudioMixer.h"
 #include "core/Entity.h"
 #include "core/Transform.h"
 #include "core/Logger.h"
+#include <cstring>
 #include <stdexcept>
 #include <algorithm>
 
@@ -18,8 +20,8 @@ namespace engine::audio {
 
     static XMFLOAT3 getEntityForward(core::Entity* e) {
         if (auto* t = e->getComponent<core::Transform>()) {
-            XMMATRIX rot = XMMatrixRotationQuaternion(
-                XMLoadFloat4(&t->getRotationQuat()));
+            XMFLOAT4 quat = t->getRotationQuat();
+            XMMATRIX rot  = XMMatrixRotationQuaternion(XMLoadFloat4(&quat));
             XMVECTOR fwd = XMVector3TransformNormal(XMVectorSet(0, 0, 1, 0), rot);
             XMFLOAT3 out;
             XMStoreFloat3(&out, fwd);
@@ -48,7 +50,10 @@ namespace engine::audio {
         sendDesc.Flags = 0;
 
         IXAudio2SubmixVoice* submix = m_mixer->getChannel(m_channel);
-        sendDesc.pOutputVoice = submix ? submix : m_engine->getMasterVoice();
+        IXAudio2Voice* outputVoice  = submix
+            ? static_cast<IXAudio2Voice*>(submix)
+            : static_cast<IXAudio2Voice*>(m_engine->getMasterVoice());
+        sendDesc.pOutputVoice = outputVoice;
 
         XAUDIO2_VOICE_SENDS sends{};
         sends.SendCount = 1;
@@ -161,43 +166,53 @@ namespace engine::audio {
         XMFLOAT3 listenerPos = { 0.f, 0.f, 0.f };
         XMFLOAT3 listenerFwd = { 0.f, 0.f, 1.f };
         XMFLOAT3 listenerUp  = { 0.f, 1.f, 0.f };
+        XMFLOAT3 vel         = { 0.f, 0.f, 0.f };
+        XMFLOAT3 emitterUp   = { 0.f, 1.f, 0.f };
 
-        XMVECTOR dx = XMLoadFloat3(&emitterPos) - XMLoadFloat3(&listenerPos);
-        float distance = XMVectorGetX(XMVector3Length(dx));
+        XMVECTOR dx       = XMVectorSubtract(XMLoadFloat3(&emitterPos), XMLoadFloat3(&listenerPos));
+        float    distance = XMVectorGetX(XMVector3Length(dx));
 
-        float t      = std::clamp((distance - m_minDistance) / (m_maxDistance - m_minDistance), 0.f, 1.f);
-        float atten  = 1.f - t;
-
-        XMFLOAT3 vel        = { 0.f, 0.f, 0.f };
-        XMFLOAT3 emitterUp  = { 0.f, 1.f, 0.f };
+        float t     = std::clamp((distance - m_minDistance) / (m_maxDistance - m_minDistance), 0.f, 1.f);
+        float atten = 1.f - t;
 
         X3DAUDIO_LISTENER listener{};
-        listener.Position = { listenerPos.x, listenerPos.y, listenerPos.z };
+        listener.Position    = { listenerPos.x, listenerPos.y, listenerPos.z };
         listener.OrientFront = { listenerFwd.x, listenerFwd.y, listenerFwd.z };
         listener.OrientTop   = { listenerUp.x,  listenerUp.y,  listenerUp.z  };
         listener.Velocity    = { vel.x, vel.y, vel.z };
+        listener.pCone       = nullptr;
 
         X3DAUDIO_EMITTER emitter{};
-        emitter.Position     = { emitterPos.x, emitterPos.y, emitterPos.z };
-        emitter.OrientFront  = { emitterFwd.x, emitterFwd.y, emitterFwd.z };
-        emitter.OrientTop    = { emitterUp.x,  emitterUp.y,  emitterUp.z  };
-        emitter.Velocity     = { vel.x, vel.y, vel.z };
-        emitter.ChannelCount = 1;
+        emitter.Position            = { emitterPos.x, emitterPos.y, emitterPos.z };
+        emitter.OrientFront         = { emitterFwd.x, emitterFwd.y, emitterFwd.z };
+        emitter.OrientTop           = { emitterUp.x,  emitterUp.y,  emitterUp.z  };
+        emitter.Velocity            = { vel.x, vel.y, vel.z };
+        emitter.pCone               = nullptr;
+        emitter.ChannelCount        = 1;
+        emitter.pChannelAzimuths    = nullptr;
         emitter.CurveDistanceScaler = m_minDistance;
         emitter.DopplerScaler       = 1.f;
         emitter.InnerRadius         = 0.f;
         emitter.InnerRadiusAngle    = 0.f;
+        emitter.pVolumeCurve        = nullptr;
+        emitter.pLFECurve           = nullptr;
+        emitter.pLPFDirectCurve     = nullptr;
+        emitter.pLPFReverbCurve     = nullptr;
+        emitter.pReverbCurve        = nullptr;
 
         uint32_t outCh = m_engine->getOutputChannels();
-        std::vector<float> matrix(outCh, 0.f);
+        std::vector<float> matrix(static_cast<size_t>(outCh), 0.f);
 
         X3DAUDIO_DSP_SETTINGS dsp{};
-        dsp.SrcChannelCount = 1;
-        dsp.DstChannelCount = outCh;
+        dsp.SrcChannelCount     = 1;
+        dsp.DstChannelCount     = outCh;
         dsp.pMatrixCoefficients = matrix.data();
 
+        X3DAUDIO_HANDLE handleCopy;
+        memcpy(handleCopy, m_engine->getX3DHandle(), X3DAUDIO_HANDLE_BYTESIZE);
+
         X3DAudioCalculate(
-            m_engine->getX3DHandle(),
+            handleCopy,
             &listener,
             &emitter,
             X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER,

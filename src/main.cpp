@@ -1,4 +1,4 @@
-#include "core/Application.h"
+#include "runtime/EngineRuntime.h"
 #include <Windows.h>
 
 int WINAPI WinMain(
@@ -7,7 +7,7 @@ int WINAPI WinMain(
     _In_     LPSTR     lpCmdLine,
     _In_     int       nShowCmd) {
     try {
-        engine::core::Application app;
+        engine::runtime::EngineRuntime app;
         return app.run();
     }
     catch (const std::exception& e) {

@@ -73,7 +73,7 @@ namespace engine::renderer {
         if (fabsf(XMVectorGetY(dir)) > 0.99f)
             up = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 
-        XMVECTOR lightPos = center - dir * m_desc.shadowDistance;
+        XMVECTOR lightPos = XMVectorSubtract(center, XMVectorScale(dir, m_desc.shadowDistance));
 
         XMMATRIX lightView = XMMatrixLookAtLH(lightPos, center, up);
         XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(
@@ -81,7 +81,7 @@ namespace engine::renderer {
             m_desc.nearZ, m_desc.farZ
         );
 
-        m_cascadeData.lightSpaceMatrices[index] = lightView * lightProj;
+        m_cascadeData.lightSpaceMatrices[index] = XMMatrixMultiply(lightView, lightProj);
     }
 
     void CascadeShadowMap::update(
