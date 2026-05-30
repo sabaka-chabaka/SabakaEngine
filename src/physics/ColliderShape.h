@@ -11,7 +11,7 @@ namespace engine::physics {
     };
 
     struct BoxCollider {
-        XMFLOAT3 HalfExtents = {0.5f,0.5f,0.5f};
+        XMFLOAT3 halfExtents = {0.5f,0.5f,0.5f};
     };
 
     struct SphereCollider {
