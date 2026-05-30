@@ -104,6 +104,14 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/physics/PhysicsWorld.h
         src/physics/RigidBody.cpp
         src/physics/RigidBody.h
+        src/audio/AudioEngine.cpp
+        src/audio/AudioEngine.h
+        src/audio/AudioClip.cpp
+        src/audio/AudioClip.h
+        src/audio/AudioSource.cpp
+        src/audio/AudioSource.h
+        src/audio/AudioMixer.cpp
+        src/audio/AudioMixer.h
 )
 
 target_include_directories(SabakaEngine PRIVATE
