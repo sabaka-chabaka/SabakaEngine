@@ -1,23 +1,10 @@
 #pragma once
 #include "platform/Window.h"
 #include "renderer/GraphicsDevice.h"
-#include "renderer/Mesh.h"
-#include "renderer/Shader.h"
 #include "renderer/Camera.h"
 #include "renderer/ConstantBuffer.h"
 #include "renderer/TransformData.h"
-#include "renderer/Texture2D.h"
-#include "renderer/SamplerState.h"
-#include "renderer/Material.h"
 #include "renderer/Light.h"
-#include "renderer/CubemapTexture.h"
-#include "renderer/SkyboxBuffer.h"
-#include "renderer/SkyboxMesh.h"
-#include "renderer/DepthPrePass.h"
-#include "renderer/OcclusionQuery.h"
-#include "renderer/ShadowMap.h"
-#include "renderer/ShadowPass.h"
-#include "renderer/ShadowSampler.h"
 #include "renderer/RenderTarget.h"
 #include "renderer/PostProcessPass.h"
 #include "renderer/PostProcessBuffer.h"
@@ -27,15 +14,19 @@
 #include "renderer/MotionBlurBuffer.h"
 #include "renderer/DofBuffer.h"
 #include "renderer/ColorGradingBuffer.h"
+#include "renderer/SkyboxBuffer.h"
+#include "renderer/SkyboxMesh.h"
+#include "renderer/CubemapTexture.h"
+#include "renderer/SamplerState.h"
+#include "renderer/Shader.h"
+#include "renderer/ShadowMap.h"
+#include "renderer/ShadowPass.h"
+#include "renderer/ShadowSampler.h"
+#include "renderer/DepthPrePass.h"
+#include "renderer/OcclusionQuery.h"
 #include "assets/AssetManager.h"
 #include "core/VFS.h"
 #include "core/FileWatcher.h"
-#include "physics/PhysicsWorld.h"
-#include "physics/RigidBody.h"
-#include "audio/AudioEngine.h"
-#include "audio/AudioMixer.h"
-#include "audio/AudioClip.h"
-#include "audio/AudioSource.h"
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
@@ -43,13 +34,25 @@
 #include "core/BoundingBoxComponent.h"
 #include "core/LodComponent.h"
 #include "math/Frustum.h"
+#include "physics/PhysicsWorld.h"
+#include "physics/RigidBody.h"
+#include "audio/AudioEngine.h"
+#include "audio/AudioMixer.h"
+#include "audio/AudioClip.h"
+#include "audio/AudioSource.h"
+#include <wrl/client.h>
+#include <d3d11.h>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 namespace engine::core {
+
     class Application {
     public:
         Application();
-        ~Application();
+        virtual ~Application();
 
         Application(const Application&)            = delete;
         Application& operator=(const Application&) = delete;
@@ -57,20 +60,18 @@ namespace engine::core {
         int run();
 
     protected:
+        virtual void onInit()                  {}
         virtual void onUpdate(float deltaTime) {}
-        virtual void onRender()               {}
+        virtual void onRender()                {}
+
+        void initRenderPipeline();
+        void renderFrame(float deltaTime);
 
         std::unique_ptr<platform::Window>                                   m_window;
         std::unique_ptr<renderer::GraphicsDevice>                           m_graphics;
-        std::unique_ptr<renderer::Mesh>                                     m_mesh;
-        std::unique_ptr<renderer::Shader>                                   m_shader;
         std::unique_ptr<renderer::Camera>                                   m_camera;
         std::unique_ptr<renderer::ConstantBuffer<renderer::TransformData>>  m_transformCB;
         std::unique_ptr<renderer::ConstantBuffer<renderer::LightBuffer>>    m_lightCB;
-        std::unique_ptr<renderer::Texture2D>                                m_diffuseTexture;
-        std::unique_ptr<renderer::Texture2D>                                m_specularTexture;
-        std::unique_ptr<renderer::Texture2D>                                m_normalMap;
-        std::unique_ptr<renderer::SamplerState>                             m_sampler;
 
         std::unique_ptr<renderer::SkyboxMesh>                               m_skyboxMesh;
         std::unique_ptr<renderer::Shader>                                   m_skyboxShader;
@@ -153,12 +154,11 @@ namespace engine::core {
         std::unique_ptr<renderer::PostProcessPass>                                    m_vignettePass;
         std::unique_ptr<renderer::ConstantBuffer<renderer::VignetteData>>             m_vignetteCB;
         renderer::VignetteData                                                        m_vignetteData;
-        bool                                                                          m_vignetteEnabled       = true;
-        bool                                                                          m_aberrationEnabled     = true;
+        bool                                                                          m_vignetteEnabled   = true;
+        bool                                                                          m_aberrationEnabled = true;
 
         std::unique_ptr<Scene>                                              m_scene;
         std::unique_ptr<SceneHierarchy>                                     m_hierarchy;
-        std::unique_ptr<renderer::Material>                                 m_cubeMaterial;
         std::unique_ptr<assets::AssetManager>                               m_assetManager;
 
         std::unique_ptr<FileWatcher>                                        m_shaderWatcher;
@@ -175,6 +175,6 @@ namespace engine::core {
         std::unique_ptr<audio::AudioEngine>                                 m_audioEngine;
         std::unique_ptr<audio::AudioMixer>                                  m_audioMixer;
 
-        Entity*                                                             m_cubeEntity = nullptr;
+        renderer::LightBuffer                                               m_lightBuffer;
     };
 }
