@@ -3,6 +3,8 @@ project(SabakaEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(PHYSX_ROOT "D:/CLionProjects/SabakaEngine/third_party/PhysX-sdk")
+
 add_executable(SabakaEngine WIN32 src/main.cpp
         src/platform/Window.cpp
         src/platform/Window.h
@@ -98,12 +100,26 @@ add_executable(SabakaEngine WIN32 src/main.cpp
         src/physics/ColliderShape.h
 )
 
-target_include_directories(SabakaEngine PRIVATE src)
+target_include_directories(SabakaEngine PRIVATE
+        src
+        ${PHYSX_ROOT}/include
+)
 
 target_link_libraries(SabakaEngine PRIVATE
         d3d11
         dxgi
         d3dcompiler
+        ${PHYSX_ROOT}/lib/PhysX_64.lib
+        ${PHYSX_ROOT}/lib/PhysXCommon_64.lib
+        ${PHYSX_ROOT}/lib/PhysXFoundation_64.lib
+        ${PHYSX_ROOT}/lib/PhysXExtensions_static_64.lib
+        ${PHYSX_ROOT}/lib/PhysXPvdSDK_static_64.lib
+        ${PHYSX_ROOT}/lib/LowLevel_static_64.lib
+        ${PHYSX_ROOT}/lib/LowLevelAABB_static_64.lib
+        ${PHYSX_ROOT}/lib/LowLevelDynamics_static_64.lib
+        ${PHYSX_ROOT}/lib/SceneQuery_static_64.lib
+        ${PHYSX_ROOT}/lib/SimulationController_static_64.lib
+        ${PHYSX_ROOT}/lib/PhysXTask_static_64.lib
 )
 
 add_custom_command(TARGET SabakaEngine POST_BUILD
@@ -116,7 +132,16 @@ add_custom_command(TARGET SabakaEngine POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_SOURCE_DIR}/models"
         "$<TARGET_FILE_DIR:SabakaEngine>/models"
-        COMMENT "Copying shaders, models and textures to output directory"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_ROOT}/bin/PhysX_64.dll"
+        "$<TARGET_FILE_DIR:SabakaEngine>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_ROOT}/bin/PhysXCommon_64.dll"
+        "$<TARGET_FILE_DIR:SabakaEngine>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PHYSX_ROOT}/bin/PhysXFoundation_64.dll"
+        "$<TARGET_FILE_DIR:SabakaEngine>"
+        COMMENT "Copying shaders, textures, models and PhysX DLLs to output directory"
 )
 
 install(TARGETS SabakaEngine DESTINATION .)
