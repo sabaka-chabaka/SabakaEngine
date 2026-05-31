@@ -145,8 +145,7 @@ namespace engine::core {
         LOG_DEBUG("Initializing render pipeline...");
         initRenderPipeline();
 
-        LOG_INFO("Engine systems ready — calling onInit()");
-        onInit();
+        LOG_INFO("Engine systems ready");
     }
 
     Application::~Application() {

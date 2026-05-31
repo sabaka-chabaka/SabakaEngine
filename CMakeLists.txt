@@ -223,7 +223,12 @@ if(Qt6_FOUND)
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${PHYSX_ROOT}/bin/PhysXFoundation_64.dll"
             "$<TARGET_FILE_DIR:SabakaEditor>"
-            COMMENT "Copying assets and PhysX DLLs to SabakaEditor output"
+            COMMAND "${QT_ROOT}/bin/windeployqt.exe"
+            --no-translations
+            --no-system-d3d-compiler
+            --no-opengl-sw
+            "$<TARGET_FILE:SabakaEditor>"
+            COMMENT "Copying assets, PhysX DLLs and Qt runtime to SabakaEditor output"
     )
 else()
     message(STATUS "Qt6 not found — SabakaEditor will not be built")

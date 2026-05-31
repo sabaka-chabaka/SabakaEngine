@@ -24,6 +24,10 @@ namespace engine::runtime {
         return std::filesystem::path(buf).parent_path().string();
     }
 
+    EngineRuntime::EngineRuntime() {
+        onInit();
+    }
+
     void EngineRuntime::onInit() {
         std::string exeDir = getExeDir();
 

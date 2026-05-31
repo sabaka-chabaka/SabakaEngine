@@ -11,7 +11,7 @@ namespace engine::runtime {
 
     class EngineRuntime : public core::Application {
     public:
-        EngineRuntime()  = default;
+        EngineRuntime();
         ~EngineRuntime() = default;
 
     protected:
