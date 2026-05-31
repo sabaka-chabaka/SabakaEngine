@@ -122,7 +122,7 @@
 ### Блок 11 — Qt Editor
 ```
 [✓] 80. Qt интеграция — DX11 viewport в QWindow::winId()
-[ ] 81. Rider / CLion plugin манифест (.idea структура)
+[x] 81. Rider / CLion plugin манифест (.idea структура)
 [ ] 82. MainWindow (меню, toolbar, dockable панели)
 [ ] 83. Viewport панель (рендер движка внутри Qt)
 [ ] 84. Scene Hierarchy (QTreeView → список Entity)
