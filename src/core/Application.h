@@ -30,16 +30,10 @@
 #include "core/Scene.h"
 #include "core/Transform.h"
 #include "core/SceneHierarchy.h"
-#include "core/MeshRenderer.h"
-#include "core/BoundingBoxComponent.h"
-#include "core/LodComponent.h"
 #include "math/Frustum.h"
 #include "physics/PhysicsWorld.h"
-#include "physics/RigidBody.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioMixer.h"
-#include "audio/AudioClip.h"
-#include "audio/AudioSource.h"
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <memory>
