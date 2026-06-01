@@ -1,5 +1,9 @@
 #include "editor/MainWindow.h"
 #include "editor/ViewportWindow.h"
+#include "editor/HierarchyWidget.h"
+#include "editor/EditorApplication.h"
+#include "core/Entity.h"
+#include "core/Transform.h"
 #include <QApplication>
 #include <QFileDialog>
 #include <QMenuBar>
@@ -8,6 +12,7 @@
 #include <QStatusBar>
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
+#include <QLabel>
 
 namespace engine::editor {
 
@@ -28,9 +33,9 @@ namespace engine::editor {
 
     void MainWindow::setupMenuBar() {
         QMenu* file = menuBar()->addMenu("File");
-        file->addAction(QIcon(), "New Scene",  this, &MainWindow::onNewScene,  QKeySequence::New);
-        file->addAction(QIcon(), "Open Scene", this, &MainWindow::onOpenScene, QKeySequence::Open);
-        file->addAction(QIcon(), "Save Scene", this, &MainWindow::onSaveScene, QKeySequence::Save);
+        file->addAction("New Scene",  this, &MainWindow::onNewScene,  QKeySequence::New);
+        file->addAction("Open Scene", this, &MainWindow::onOpenScene, QKeySequence::Open);
+        file->addAction("Save Scene", this, &MainWindow::onSaveScene, QKeySequence::Save);
         file->addSeparator();
         file->addAction("Exit", QApplication::instance(), &QApplication::quit, QKeySequence::Quit);
 
@@ -38,31 +43,33 @@ namespace engine::editor {
         edit->addAction("Undo", QKeySequence::Undo);
         edit->addAction("Redo", QKeySequence::Redo);
         edit->addSeparator();
-
         QMenu* gizmoMenu = edit->addMenu("Gizmo Mode");
         gizmoMenu->addAction("Move",   this, &MainWindow::onGizmoMove,   QKeySequence("W"));
         gizmoMenu->addAction("Rotate", this, &MainWindow::onGizmoRotate, QKeySequence("E"));
         gizmoMenu->addAction("Scale",  this, &MainWindow::onGizmoScale,  QKeySequence("R"));
 
         QMenu* view = menuBar()->addMenu("View");
-        view->addAction("Hierarchy",     [this]{ if (m_hierarchyTree) m_hierarchyTree->parentWidget()->parentWidget()->show(); });
-        view->addAction("Inspector",     [this]{ if (m_inspectorArea) m_inspectorArea->parentWidget()->parentWidget()->show(); });
-        view->addAction("Asset Browser", [this]{ if (m_assetList)     m_assetList->parentWidget()->parentWidget()->show(); });
+        view->addAction("Hierarchy",     [this] {
+            if (m_hierarchy) m_hierarchy->parentWidget()->parentWidget()->show();
+        });
+        view->addAction("Inspector",     [this] {
+            if (m_inspectorArea) m_inspectorArea->parentWidget()->parentWidget()->show();
+        });
+        view->addAction("Asset Browser", [this] {
+            if (m_assetList) m_assetList->parentWidget()->parentWidget()->show();
+        });
 
-        QMenu* help = menuBar()->addMenu("Help");
-        help->addAction("About SabakaEngine", this, &MainWindow::onAbout);
+        menuBar()->addMenu("Help")->addAction("About", this, &MainWindow::onAbout);
     }
 
     void MainWindow::setupToolBar() {
         QToolBar* tb = addToolBar("Main");
         tb->setObjectName("mainToolBar");
         tb->setMovable(false);
-        tb->setIconSize(QSize(16, 16));
 
         m_actPlay  = tb->addAction("▶  Play",  this, &MainWindow::onPlay);
         m_actPause = tb->addAction("⏸  Pause", this, &MainWindow::onPause);
         m_actStop  = tb->addAction("⏹  Stop",  this, &MainWindow::onStop);
-
         m_actPause->setEnabled(false);
         m_actStop->setEnabled(false);
 
@@ -71,28 +78,23 @@ namespace engine::editor {
         m_actMove   = tb->addAction("Move",   this, &MainWindow::onGizmoMove);
         m_actRotate = tb->addAction("Rotate", this, &MainWindow::onGizmoRotate);
         m_actScale  = tb->addAction("Scale",  this, &MainWindow::onGizmoScale);
-
         m_actMove->setCheckable(true);
         m_actRotate->setCheckable(true);
         m_actScale->setCheckable(true);
         m_actMove->setChecked(true);
-
-        tb->addSeparator();
-        tb->addAction("Settings");
     }
 
     void MainWindow::setupDocks() {
-        m_hierarchyTree = new QTreeWidget();
-        m_hierarchyTree->setHeaderLabel("Scene");
-        m_hierarchyTree->setAlternatingRowColors(true);
-        m_hierarchyTree->addTopLevelItem(new QTreeWidgetItem(QStringList{"(empty scene)"}));
-        makeDock("Hierarchy", m_hierarchyTree, Qt::LeftDockWidgetArea, 220, 300);
+        m_hierarchy = new HierarchyWidget();
+        connect(m_hierarchy, &HierarchyWidget::entitySelected,
+                this, &MainWindow::onEntitySelected);
+        makeDock("Hierarchy", m_hierarchy, Qt::LeftDockWidgetArea, 220, 300);
 
-        auto* inspectorPlaceholder = new QLabel("Select an entity");
-        inspectorPlaceholder->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
-        inspectorPlaceholder->setContentsMargins(8, 12, 8, 8);
+        auto* placeholder = new QLabel("Select an entity to inspect");
+        placeholder->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
+        placeholder->setContentsMargins(8, 12, 8, 8);
         m_inspectorArea = new QScrollArea();
-        m_inspectorArea->setWidget(inspectorPlaceholder);
+        m_inspectorArea->setWidget(placeholder);
         m_inspectorArea->setWidgetResizable(true);
         m_inspectorArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         makeDock("Inspector", m_inspectorArea, Qt::RightDockWidgetArea, 260, 300);
@@ -106,7 +108,10 @@ namespace engine::editor {
     }
 
     void MainWindow::setupCentralViewport() {
-        m_viewportWindow    = new ViewportWindow();
+        m_viewportWindow = new ViewportWindow();
+        connect(m_viewportWindow, &ViewportWindow::engineReady,
+                this, &MainWindow::onEngineReady);
+
         m_viewportContainer = QWidget::createWindowContainer(m_viewportWindow, this);
         m_viewportContainer->setMinimumSize(320, 240);
         m_viewportContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -128,22 +133,60 @@ namespace engine::editor {
         return dock;
     }
 
+    void MainWindow::onEngineReady(EditorApplication* engine) {
+        m_hierarchy->setEngine(engine);
+        statusBar()->showMessage("Engine ready");
+    }
+
+    void MainWindow::onEntitySelected(core::Entity* entity) {
+        if (!entity) return;
+
+        auto* t = entity->getComponent<core::Transform>();
+
+        auto* content = new QWidget();
+        auto* layout  = new QVBoxLayout(content);
+        layout->setAlignment(Qt::AlignTop);
+        layout->setContentsMargins(8, 8, 8, 8);
+
+        auto* nameLabel = new QLabel(QString("<b>%1</b>").arg(
+            QString::fromStdString(entity->getName())));
+        layout->addWidget(nameLabel);
+
+        if (t) {
+            layout->addWidget(new QLabel("Transform"));
+            auto pos = t->getPosition();
+            layout->addWidget(new QLabel(QString("  pos: %1, %2, %3")
+                .arg(pos.x, 0, 'f', 2)
+                .arg(pos.y, 0, 'f', 2)
+                .arg(pos.z, 0, 'f', 2)));
+            auto scl = t->getScale();
+            layout->addWidget(new QLabel(QString("  scale: %1, %2, %3")
+                .arg(scl.x, 0, 'f', 2)
+                .arg(scl.y, 0, 'f', 2)
+                .arg(scl.z, 0, 'f', 2)));
+        }
+
+        m_inspectorArea->setWidget(content);
+        statusBar()->showMessage(QString("Selected: %1")
+            .arg(QString::fromStdString(entity->getName())));
+    }
+
     void MainWindow::onNewScene() {
-        m_hierarchyTree->clear();
-        m_hierarchyTree->addTopLevelItem(new QTreeWidgetItem(QStringList{"(empty scene)"}));
-        statusBar()->showMessage("New scene created");
+        if (m_hierarchy) m_hierarchy->setEngine(
+            m_viewportWindow ? m_viewportWindow->getEngine() : nullptr);
+        statusBar()->showMessage("New scene");
     }
 
     void MainWindow::onOpenScene() {
         QString path = QFileDialog::getOpenFileName(
-            this, "Open Scene", "", "Scene Files (*.scene *.json);;All Files (*)");
+            this, "Open Scene", "", "Scene Files (*.scene);;All Files (*)");
         if (!path.isEmpty())
             statusBar()->showMessage("Opened: " + path);
     }
 
     void MainWindow::onSaveScene() {
         QString path = QFileDialog::getSaveFileName(
-            this, "Save Scene", "", "Scene Files (*.scene *.json);;All Files (*)");
+            this, "Save Scene", "", "Scene Files (*.scene);;All Files (*)");
         if (!path.isEmpty())
             statusBar()->showMessage("Saved: " + path);
     }
@@ -175,21 +218,21 @@ namespace engine::editor {
         m_actMove->setChecked(true);
         m_actRotate->setChecked(false);
         m_actScale->setChecked(false);
-        statusBar()->showMessage("Gizmo: Move (W)");
+        statusBar()->showMessage("Gizmo: Move");
     }
 
     void MainWindow::onGizmoRotate() {
         m_actMove->setChecked(false);
         m_actRotate->setChecked(true);
         m_actScale->setChecked(false);
-        statusBar()->showMessage("Gizmo: Rotate (E)");
+        statusBar()->showMessage("Gizmo: Rotate");
     }
 
     void MainWindow::onGizmoScale() {
         m_actMove->setChecked(false);
         m_actRotate->setChecked(false);
         m_actScale->setChecked(true);
-        statusBar()->showMessage("Gizmo: Scale (R)");
+        statusBar()->showMessage("Gizmo: Scale");
     }
 
     void MainWindow::onAbout() {

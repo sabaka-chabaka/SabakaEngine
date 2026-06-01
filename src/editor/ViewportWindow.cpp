@@ -1,68 +1,38 @@
-#define NOMINMAX
-#include "editor/ViewportWindow.h"
-#include "editor/EditorApplication.h"
-#include "core/Logger.h"
-#include <QResizeEvent>
-#include <windows.h>
+#pragma once
+#include <QWindow>
+#include <QTimer>
+#include <chrono>
+#include <memory>
 
-using namespace std::chrono;
+namespace engine::editor { class EditorApplication; }
 
 namespace engine::editor {
 
-    ViewportWindow::ViewportWindow(QWindow* parent)
-        : QWindow(parent)
-    {
-        setSurfaceType(QWindow::RasterSurface);
-        setMinimumSize({ 320, 240 });
+    class ViewportWindow : public QWindow {
+        Q_OBJECT
+    public:
+        explicit ViewportWindow(QWindow* parent = nullptr);
+        ~ViewportWindow() override;
 
-        connect(&m_timer, &QTimer::timeout, this, &ViewportWindow::onTick);
-    }
+        EditorApplication* getEngine() const { return m_engine.get(); }
 
-    ViewportWindow::~ViewportWindow() {
-        m_timer.stop();
-    }
+        signals:
+            void engineReady(EditorApplication* engine);
 
-    void ViewportWindow::exposeEvent(QExposeEvent*) {
-        if (isExposed() && !m_engineReady)
-            startEngine();
-    }
+    protected:
+        void exposeEvent(QExposeEvent* event) override;
+        void resizeEvent(QResizeEvent* event) override;
 
-    void ViewportWindow::resizeEvent(QResizeEvent* event) {
-        QWindow::resizeEvent(event);
-        if (m_engine && m_engineReady) {
-            int w = event->size().width();
-            int h = std::max(event->size().height(), 1);
-            m_engine->getDevice()->onResize(w, h);
-        }
-    }
+    private slots:
+        void onTick();
 
-    void ViewportWindow::startEngine() {
-        HWND hwnd = reinterpret_cast<HWND>(winId());
-        int  w    = std::max(width(),  1);
-        int  h    = std::max(height(), 1);
+    private:
+        void startEngine();
 
-        try {
-            m_engine      = std::make_unique<EditorApplication>(hwnd, w, h);
-            m_engineReady = true;
-            m_lastTime    = high_resolution_clock::now();
-            m_timer.start(0);
-            LOG_INFO("[ViewportWindow] engine started");
-        }
-        catch (const std::exception& e) {
-            LOG_FATAL(std::string("[ViewportWindow] engine init failed: ") + e.what());
-        }
-    }
-
-    void ViewportWindow::onTick() {
-        if (!m_engineReady) return;
-
-        auto  now       = high_resolution_clock::now();
-        float deltaTime = duration<float>(now - m_lastTime).count();
-        m_lastTime      = now;
-
-        deltaTime = std::min(deltaTime, 0.05f);
-
-        m_engine->tick(deltaTime);
-    }
+        std::unique_ptr<EditorApplication>             m_engine;
+        QTimer                                         m_timer;
+        std::chrono::high_resolution_clock::time_point m_lastTime;
+        bool                                           m_engineReady = false;
+    };
 
 }

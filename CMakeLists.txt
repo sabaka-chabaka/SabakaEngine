@@ -194,6 +194,8 @@ if(Qt6_FOUND)
             src/editor/ViewportWindow.h
             src/editor/EditorApplication.cpp
             src/editor/EditorApplication.h
+            src/editor/HierarchyWidget.cpp
+            src/editor/HierarchyWidget.h
     )
 
     target_include_directories(SabakaEditor PRIVATE src)

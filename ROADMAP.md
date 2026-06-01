@@ -125,7 +125,7 @@
 [x] 81. Rider / CLion plugin манифест (.idea структура)
 [✓] 82. MainWindow (меню, toolbar, dockable панели)
 [✓] 83. Viewport панель (рендер движка внутри Qt)
-[ ] 84. Scene Hierarchy (QTreeView → список Entity)
+[✓] 84. Scene Hierarchy (QTreeView → список Entity)
 [ ] 85. Inspector панель (компоненты выбранного Entity)
 [ ] 86. Asset Browser (файловая система проекта)
 [ ] 87. Drag & drop ассетов из браузера в сцену
