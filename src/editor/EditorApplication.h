@@ -1,5 +1,10 @@
 #pragma once
 #include "core/Application.h"
+#include "renderer/Mesh.h"
+#include "renderer/Shader.h"
+#include "renderer/Material.h"
+#include "renderer/SamplerState.h"
+#include <memory>
 #include <string>
 #include <windows.h>
 
@@ -27,6 +32,13 @@ namespace engine::editor {
         void onInit() override;
 
     private:
+        void setupPrimitiveResources();
+
+        std::unique_ptr<renderer::Mesh>        m_cubeMesh;
+        std::unique_ptr<renderer::Shader>      m_flatShader;
+        std::unique_ptr<renderer::Material>    m_defaultMaterial;
+        std::unique_ptr<renderer::SamplerState> m_defaultSampler;
+
         core::Entity* m_selectedEntity = nullptr;
     };
 
