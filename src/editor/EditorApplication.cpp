@@ -14,8 +14,8 @@ namespace engine::editor {
     EditorApplication::EditorApplication(HWND viewportHwnd, int width, int height)
         : Application(EditorTag{})
     {
-        Logger::get().openLogFile("editor.log");
-        Logger::get().setMinLevel(LogLevel::Debug);
+        core::Logger::get().openLogFile("editor.log");
+        core::Logger::get().setMinLevel(core::LogLevel::Debug);
 
         renderer::GraphicsDeviceDesc desc;
         desc.hwnd   = viewportHwnd;
