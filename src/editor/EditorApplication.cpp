@@ -17,7 +17,7 @@ namespace engine::editor {
         m_graphics = std::make_unique<renderer::GraphicsDevice>(desc);
         LOG_INFO("[EditorApplication] GraphicsDevice created on Qt viewport HWND");
 
-        initRenderPipeline();
+        initRenderPipeline(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
         LOG_INFO("[EditorApplication] ready — calling onInit()");
         onInit();

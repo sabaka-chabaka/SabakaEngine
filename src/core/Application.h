@@ -58,7 +58,7 @@ namespace engine::core {
         virtual void onUpdate(float deltaTime) {}
         virtual void onRender()                {}
 
-        void initRenderPipeline();
+        void initRenderPipeline(uint32_t width = 0, uint32_t height = 0);
         void renderFrame(float deltaTime);
 
         std::unique_ptr<platform::Window>                                   m_window;

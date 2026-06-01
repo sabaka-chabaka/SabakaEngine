@@ -12,7 +12,7 @@ namespace engine::editor {
     ViewportWindow::ViewportWindow(QWindow* parent)
         : QWindow(parent)
     {
-        setSurfaceType(QWindow::OpenGLSurface);
+        setSurfaceType(QWindow::RasterSurface);
         setMinimumSize({ 320, 240 });
 
         connect(&m_timer, &QTimer::timeout, this, &ViewportWindow::onTick);
@@ -31,22 +31,22 @@ namespace engine::editor {
         QWindow::resizeEvent(event);
         if (m_engine && m_engineReady) {
             int w = event->size().width();
-            int h = event->size().height();
+            int h = std::max(event->size().height(), 1);
             m_engine->getDevice()->onResize(w, h);
         }
     }
 
     void ViewportWindow::startEngine() {
         HWND hwnd = reinterpret_cast<HWND>(winId());
-        int  w    = width();
-        int  h    = height() > 0 ? height() : 1;
+        int  w    = std::max(width(),  1);
+        int  h    = std::max(height(), 1);
 
         try {
             m_engine      = std::make_unique<EditorApplication>(hwnd, w, h);
             m_engineReady = true;
             m_lastTime    = high_resolution_clock::now();
             m_timer.start(0);
-            LOG_INFO("[ViewportWindow] engine started on HWND " + std::to_string(reinterpret_cast<uintptr_t>(hwnd)));
+            LOG_INFO("[ViewportWindow] engine started");
         }
         catch (const std::exception& e) {
             LOG_FATAL(std::string("[ViewportWindow] engine init failed: ") + e.what());

@@ -152,9 +152,9 @@ namespace engine::core {
         LOG_INFO("Shutting down SabakaEngine");
     }
 
-    void Application::initRenderPipeline() {
-        uint32_t w = static_cast<uint32_t>(m_window->getWidth());
-        uint32_t h = static_cast<uint32_t>(m_window->getHeight());
+    void Application::initRenderPipeline(uint32_t width, uint32_t height) {
+        uint32_t w = width  > 0 ? width  : static_cast<uint32_t>(m_window->getWidth());
+        uint32_t h = height > 0 ? height : static_cast<uint32_t>(m_window->getHeight());
 
         renderer::CameraDesc camDesc;
         camDesc.position = { 0.0f, 1.5f, -15.0f };
@@ -559,7 +559,9 @@ namespace engine::core {
         m_shadowShader->bind(ctx);
         m_shadowPass->getShadowCB()->bindVS(3);
         m_scene->renderDepthOnly(m_transformCB.get(), m_shadowPass->getShadowData().lightSpaceMatrix);
-        m_shadowPass->end(m_graphics.get(), m_window->getWidth(), m_window->getHeight());
+        int vpW = m_window ? m_window->getWidth()  : static_cast<int>(m_sceneRT->getWidth());
+        int vpH = m_window ? m_window->getHeight() : static_cast<int>(m_sceneRT->getHeight());
+        m_shadowPass->end(m_graphics.get(), vpW, vpH);
 
         m_graphics->setDepthWriteEnabled(true);
         m_graphics->setDepthFunc(renderer::DepthFunc::Less);
