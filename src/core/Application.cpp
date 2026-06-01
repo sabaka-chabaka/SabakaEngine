@@ -100,7 +100,15 @@ namespace engine::core {
                 m_vignetteRT->resize(m_graphics->getDevice(), static_cast<uint32_t>(w), static_cast<uint32_t>(h));
         });
 
-        LOG_DEBUG("Mounting VFS paths...");
+        initCoreSystems();
+        initRenderPipeline();
+
+        LOG_INFO("Engine systems ready");
+    }
+
+    void Application::initCoreSystems() {
+        std::string exeDir = getExeDir();
+
         VFS::get().mount("assets",   exeDir);
         VFS::get().mount("shaders",  exeDir + "/shaders");
         VFS::get().mount("textures", exeDir + "/textures");
@@ -141,11 +149,6 @@ namespace engine::core {
 
         m_scene     = std::make_unique<Scene>();
         m_hierarchy = std::make_unique<SceneHierarchy>();
-
-        LOG_DEBUG("Initializing render pipeline...");
-        initRenderPipeline();
-
-        LOG_INFO("Engine systems ready");
     }
 
     Application::~Application() {

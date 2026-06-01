@@ -2,29 +2,33 @@
 #include "editor/EditorApplication.h"
 #include "core/Logger.h"
 #include "renderer/GraphicsDevice.h"
-#include "platform/Window.h"
 #include <stdexcept>
 
 namespace engine::editor {
 
-    EditorApplication::EditorApplication(HWND viewportHwnd, int width, int height) {
+    EditorApplication::EditorApplication(HWND viewportHwnd, int width, int height)
+        : Application(EditorTag{})
+    {
+        core::Logger::get().openLogFile("editor.log");
+        core::Logger::get().setMinLevel(core::LogLevel::Debug);
+
         renderer::GraphicsDeviceDesc desc;
         desc.hwnd   = viewportHwnd;
-        desc.width  = width;
-        desc.height = height;
+        desc.width  = static_cast<uint32_t>(width);
+        desc.height = static_cast<uint32_t>(height);
         desc.vsync  = false;
 
         m_graphics = std::make_unique<renderer::GraphicsDevice>(desc);
-        LOG_INFO("[EditorApplication] GraphicsDevice created on Qt viewport HWND");
+        LOG_INFO("[EditorApplication] GraphicsDevice on Qt HWND");
 
+        initCoreSystems();
         initRenderPipeline(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-        LOG_INFO("[EditorApplication] ready — calling onInit()");
         onInit();
     }
 
     void EditorApplication::onInit() {
-        LOG_INFO("[EditorApplication] scene is empty — load via Asset Browser");
+        LOG_INFO("[EditorApplication] ready");
     }
 
     void EditorApplication::tick(float deltaTime) {

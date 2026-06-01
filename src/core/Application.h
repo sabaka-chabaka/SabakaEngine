@@ -54,10 +54,14 @@ namespace engine::core {
         int run();
 
     protected:
+        struct EditorTag {};
+        explicit Application(EditorTag) {}
+
         virtual void onInit()                  {}
         virtual void onUpdate(float deltaTime) {}
         virtual void onRender()                {}
 
+        void initCoreSystems();
         void initRenderPipeline(uint32_t width = 0, uint32_t height = 0);
         void renderFrame(float deltaTime);
 
