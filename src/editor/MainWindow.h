@@ -12,6 +12,7 @@ namespace engine::core  { class Entity; }
 namespace engine::editor {
     class ViewportWindow;
     class HierarchyWidget;
+    class InspectorWidget;
     class EditorApplication;
 }
 
@@ -49,7 +50,7 @@ namespace engine::editor {
         ViewportWindow*   m_viewportWindow    = nullptr;
         QWidget*          m_viewportContainer = nullptr;
         HierarchyWidget*  m_hierarchy         = nullptr;
-        QScrollArea*      m_inspectorArea     = nullptr;
+        InspectorWidget*  m_inspector         = nullptr;
         QListWidget*      m_assetList         = nullptr;
 
         QAction* m_actPlay   = nullptr;

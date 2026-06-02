@@ -196,6 +196,16 @@ if(Qt6_FOUND)
             src/editor/EditorApplication.h
             src/editor/HierarchyWidget.cpp
             src/editor/HierarchyWidget.h
+            src/editor/InspectorWidget.cpp
+            src/editor/InspectorWidget.h
+            src/editor/sections/ComponentSection.cpp
+            src/editor/sections/ComponentSection.h
+            src/editor/sections/TransformSection.cpp
+            src/editor/sections/TransformSection.h
+            src/editor/sections/MeshRendererSection.cpp
+            src/editor/sections/MeshRendererSection.h
+            src/editor/sections/BoundingBoxSection.cpp
+            src/editor/sections/BoundingBoxSection.h
     )
 
     target_include_directories(SabakaEditor PRIVATE src)

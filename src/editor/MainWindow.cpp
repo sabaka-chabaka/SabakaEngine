@@ -1,18 +1,15 @@
 #include "editor/MainWindow.h"
 #include "editor/ViewportWindow.h"
 #include "editor/HierarchyWidget.h"
+#include "editor/InspectorWidget.h"
 #include "editor/EditorApplication.h"
 #include "core/Entity.h"
-#include "core/Transform.h"
 #include <QApplication>
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QSizePolicy>
 #include <QStatusBar>
-#include <QTreeWidgetItem>
-#include <QVBoxLayout>
-#include <QLabel>
 
 namespace engine::editor {
 
@@ -53,7 +50,7 @@ namespace engine::editor {
             if (m_hierarchy) m_hierarchy->parentWidget()->parentWidget()->show();
         });
         view->addAction("Inspector",     [this] {
-            if (m_inspectorArea) m_inspectorArea->parentWidget()->parentWidget()->show();
+            if (m_inspector) m_inspector->parentWidget()->parentWidget()->show();
         });
         view->addAction("Asset Browser", [this] {
             if (m_assetList) m_assetList->parentWidget()->parentWidget()->show();
@@ -90,14 +87,8 @@ namespace engine::editor {
                 this, &MainWindow::onEntitySelected);
         makeDock("Hierarchy", m_hierarchy, Qt::LeftDockWidgetArea, 220, 300);
 
-        auto* placeholder = new QLabel("Select an entity to inspect");
-        placeholder->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
-        placeholder->setContentsMargins(8, 12, 8, 8);
-        m_inspectorArea = new QScrollArea();
-        m_inspectorArea->setWidget(placeholder);
-        m_inspectorArea->setWidgetResizable(true);
-        m_inspectorArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        makeDock("Inspector", m_inspectorArea, Qt::RightDockWidgetArea, 260, 300);
+        m_inspector = new InspectorWidget();
+        makeDock("Inspector", m_inspector, Qt::RightDockWidgetArea, 260, 300);
 
         m_assetList = new QListWidget();
         m_assetList->addItem("(no project loaded)");
@@ -135,38 +126,13 @@ namespace engine::editor {
 
     void MainWindow::onEngineReady(EditorApplication* engine) {
         m_hierarchy->setEngine(engine);
+        m_inspector->setEngine(engine);
         statusBar()->showMessage("Engine ready");
     }
 
     void MainWindow::onEntitySelected(core::Entity* entity) {
         if (!entity) return;
-
-        auto* t = entity->getComponent<core::Transform>();
-
-        auto* content = new QWidget();
-        auto* layout  = new QVBoxLayout(content);
-        layout->setAlignment(Qt::AlignTop);
-        layout->setContentsMargins(8, 8, 8, 8);
-
-        auto* nameLabel = new QLabel(QString("<b>%1</b>").arg(
-            QString::fromStdString(entity->getName())));
-        layout->addWidget(nameLabel);
-
-        if (t) {
-            layout->addWidget(new QLabel("Transform"));
-            auto pos = t->getPosition();
-            layout->addWidget(new QLabel(QString("  pos: %1, %2, %3")
-                .arg(pos.x, 0, 'f', 2)
-                .arg(pos.y, 0, 'f', 2)
-                .arg(pos.z, 0, 'f', 2)));
-            auto scl = t->getScale();
-            layout->addWidget(new QLabel(QString("  scale: %1, %2, %3")
-                .arg(scl.x, 0, 'f', 2)
-                .arg(scl.y, 0, 'f', 2)
-                .arg(scl.z, 0, 'f', 2)));
-        }
-
-        m_inspectorArea->setWidget(content);
+        m_inspector->inspect(entity);
         statusBar()->showMessage(QString("Selected: %1")
             .arg(QString::fromStdString(entity->getName())));
     }
