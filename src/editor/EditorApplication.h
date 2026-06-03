@@ -21,6 +21,7 @@ namespace engine::editor {
 
         renderer::GraphicsDevice* getDevice() const { return m_graphics.get(); }
         core::Scene*              getScene()  const { return m_scene.get(); }
+        renderer::Camera*         getCamera() const { return m_camera.get(); }
 
         core::Entity* createCube(const std::string& name = "Cube");
         core::Entity* createEmpty(const std::string& name = "Entity");

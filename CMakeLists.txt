@@ -206,6 +206,8 @@ if(Qt6_FOUND)
             src/editor/sections/MeshRendererSection.h
             src/editor/sections/BoundingBoxSection.cpp
             src/editor/sections/BoundingBoxSection.h
+            src/editor/EditorCameraController.cpp
+            src/editor/EditorCameraController.h
     )
 
     target_include_directories(SabakaEditor PRIVATE src)
