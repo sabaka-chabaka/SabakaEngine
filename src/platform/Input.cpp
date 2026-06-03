@@ -11,6 +11,11 @@ namespace engine::platform {
     void InputSystem::initialize(HWND hwnd) {
         m_hwnd = hwnd;
 
+        if (!hwnd) {
+            LOG_DEBUG("InputSystem initialized without HWND (Injection mode only)");
+            return;
+        }
+
         RAWINPUTDEVICE devices[2] = {};
 
         devices[0].usUsagePage = 0x01;
@@ -92,7 +97,7 @@ namespace engine::platform {
         m_deltaX = 0.0f;
         m_deltaY = 0.0f;
 
-        if (m_captured) {
+        if (m_captured && m_hwnd) {
             RECT rect = {};
             GetClientRect(m_hwnd, &rect);
 
@@ -198,5 +203,38 @@ namespace engine::platform {
     void InputSystem::releaseCursorCapture() {
         ClipCursor(nullptr);
         ShowCursor(TRUE);
+    }
+
+    void InputSystem::injectKeyDown(Key key) {
+        unsigned int idx = static_cast<unsigned int>(key);
+        if (idx < KEY_COUNT) {
+            m_currKeys[idx] = true;
+        }
+    }
+
+    void InputSystem::injectKeyUp(Key key) {
+        unsigned int idx = static_cast<unsigned int>(key);
+        if (idx < KEY_COUNT) m_currKeys[idx] = false;
+    }
+
+    void InputSystem::injectMouseDown(MouseButton btn) {
+        unsigned int idx = static_cast<unsigned int>(btn);
+        if (idx < BUTTON_COUNT) m_currBtns[idx] = true;
+    }
+
+    void InputSystem::injectMouseUp(MouseButton btn) {
+        unsigned int idx = static_cast<unsigned int>(btn);
+        if (idx < BUTTON_COUNT) m_currBtns[idx] = false;
+    }
+
+    void InputSystem::injectMouseDelta(float dx, float dy) {
+        m_deltaX += dx;
+        m_deltaY += dy;
+        LOG_TRACE("Mouse delta: " + std::to_string(dx) + ", " + std::to_string(dy));
+    }
+
+    void InputSystem::injectMousePosition(float x, float y) {
+        m_mousePosX = x;
+        m_mousePosY = y;
     }
 }

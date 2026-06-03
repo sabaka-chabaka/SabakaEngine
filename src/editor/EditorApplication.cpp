@@ -8,6 +8,7 @@
 #include "math/AABB.h"
 #include "renderer/GraphicsDevice.h"
 
+#include "platform/Input.h"
 #include <stdexcept>
 
 namespace engine::editor {
@@ -28,6 +29,8 @@ namespace engine::editor {
 
         m_graphics = std::make_unique<renderer::GraphicsDevice>(desc);
         LOG_INFO("[EditorApplication] GraphicsDevice on Qt HWND");
+
+        platform::InputSystem::get().initialize(nullptr);
 
         initCoreSystems();
         initRenderPipeline(static_cast<uint32_t>(width), static_cast<uint32_t>(height));

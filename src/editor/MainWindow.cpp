@@ -20,8 +20,8 @@ namespace engine::editor {
         setMinimumSize(1024, 600);
         resize(1600, 900);
 
-        setupMenuBar();
         setupToolBar();
+        setupMenuBar();
         setupDocks();
         setupCentralViewport();
 
@@ -41,9 +41,9 @@ namespace engine::editor {
         edit->addAction("Redo", QKeySequence::Redo);
         edit->addSeparator();
         QMenu* gizmoMenu = edit->addMenu("Gizmo Mode");
-        gizmoMenu->addAction("Move",   this, &MainWindow::onGizmoMove,   QKeySequence("W"));
-        gizmoMenu->addAction("Rotate", this, &MainWindow::onGizmoRotate, QKeySequence("E"));
-        gizmoMenu->addAction("Scale",  this, &MainWindow::onGizmoScale,  QKeySequence("R"));
+        gizmoMenu->addAction(m_actMove);
+        gizmoMenu->addAction(m_actRotate);
+        gizmoMenu->addAction(m_actScale);
 
         QMenu* view = menuBar()->addMenu("View");
         view->addAction("Hierarchy",     [this] {
@@ -72,13 +72,29 @@ namespace engine::editor {
 
         tb->addSeparator();
 
-        m_actMove   = tb->addAction("Move",   this, &MainWindow::onGizmoMove);
-        m_actRotate = tb->addAction("Rotate", this, &MainWindow::onGizmoRotate);
-        m_actScale  = tb->addAction("Scale",  this, &MainWindow::onGizmoScale);
+        m_actMove   = new QAction("Move", this);
+        m_actRotate = new QAction("Rotate", this);
+        m_actScale  = new QAction("Scale", this);
+
+        // NOTE: W/E/R shortcuts are intentionally NOT set here — they would steal
+        // keyboard input from the viewport (camera WASD movement). Gizmo mode can
+        // be switched via the toolbar buttons or the Edit > Gizmo Mode menu.
+        // m_actMove->setShortcut(QKeySequence("W"));
+        // m_actRotate->setShortcut(QKeySequence("E"));
+        // m_actScale->setShortcut(QKeySequence("R"));
+
         m_actMove->setCheckable(true);
         m_actRotate->setCheckable(true);
         m_actScale->setCheckable(true);
         m_actMove->setChecked(true);
+
+        connect(m_actMove,   &QAction::triggered, this, &MainWindow::onGizmoMove);
+        connect(m_actRotate, &QAction::triggered, this, &MainWindow::onGizmoRotate);
+        connect(m_actScale,  &QAction::triggered, this, &MainWindow::onGizmoScale);
+
+        tb->addAction(m_actMove);
+        tb->addAction(m_actRotate);
+        tb->addAction(m_actScale);
     }
 
     void MainWindow::setupDocks() {
@@ -102,6 +118,8 @@ namespace engine::editor {
         m_viewportWindow = new ViewportWindow();
         connect(m_viewportWindow, &ViewportWindow::engineReady,
                 this, &MainWindow::onEngineReady);
+        connect(m_viewportWindow, &ViewportWindow::rightMouseButtonChanged,
+                this, &MainWindow::onViewportMouseButtonChanged);
 
         m_viewportContainer = QWidget::createWindowContainer(m_viewportWindow, this);
         m_viewportContainer->setMinimumSize(320, 240);
@@ -199,6 +217,13 @@ namespace engine::editor {
         m_actRotate->setChecked(false);
         m_actScale->setChecked(true);
         statusBar()->showMessage("Gizmo: Scale");
+    }
+
+    void MainWindow::onViewportMouseButtonChanged(bool pressed) {
+        bool enabled = !pressed;
+        m_actMove->setEnabled(enabled);
+        m_actRotate->setEnabled(enabled);
+        m_actScale->setEnabled(enabled);
     }
 
     void MainWindow::onAbout() {

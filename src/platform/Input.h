@@ -57,6 +57,14 @@ namespace engine::platform {
         void processRawInput(LPARAM lParam);
         void endFrame();
 
+        // Manual injection for Qt/Editor
+        void injectKeyDown(Key key);
+        void injectKeyUp(Key key);
+        void injectMouseDown(MouseButton btn);
+        void injectMouseUp(MouseButton btn);
+        void injectMouseDelta(float dx, float dy);
+        void injectMousePosition(float x, float y);
+
         bool isKeyDown    (Key key) const;
         bool isKeyPressed (Key key) const;
         bool isKeyReleased(Key key) const;

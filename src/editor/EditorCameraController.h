@@ -13,7 +13,6 @@ namespace engine::editor {
 
         void onMouseMove(int dx, int dy);
         void onScroll(float delta);
-        void setKey(int qtKey, bool pressed);
         void update(float deltaTime);
 
         void setMoveSpeed(float speed)   { m_moveSpeed = speed; }
@@ -32,16 +31,9 @@ namespace engine::editor {
         float             m_pitch     = 0.f;
 
         float             m_moveSpeed = 8.f;
-        float             m_lookSpeed = 0.15f;
+        float             m_lookSpeed = 0.002f;
 
         bool m_active  = false;
-        bool m_keyW    = false;
-        bool m_keyA    = false;
-        bool m_keyS    = false;
-        bool m_keyD    = false;
-        bool m_keyQ    = false;
-        bool m_keyE    = false;
-        bool m_keyShift = false;
     };
 
 }

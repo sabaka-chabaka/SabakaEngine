@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "editor/EditorCameraController.h"
 #include "renderer/Camera.h"
+#include "platform/Input.h"
 #include <Qt>
 #include <algorithm>
 #include <cmath>
@@ -23,30 +24,9 @@ namespace engine::editor {
 
     void EditorCameraController::setActive(bool active) {
         m_active = active;
-        if (!active) {
-            m_keyW = m_keyA = m_keyS = m_keyD = m_keyQ = m_keyE = m_keyShift = false;
-        }
     }
 
-    void EditorCameraController::onMouseMove(int dx, int dy) {
-        if (!m_active || !m_camera) return;
-        m_yaw   += static_cast<float>(dx) * m_lookSpeed * kDegToRad;
-        m_pitch += static_cast<float>(dy) * m_lookSpeed * kDegToRad;
-        m_pitch  = std::clamp(m_pitch, -kPitchLimit, kPitchLimit);
-    }
-
-    void EditorCameraController::setKey(int qtKey, bool pressed) {
-        switch (qtKey) {
-            case Qt::Key_W: m_keyW     = pressed; break;
-            case Qt::Key_A: m_keyA     = pressed; break;
-            case Qt::Key_S: m_keyS     = pressed; break;
-            case Qt::Key_D: m_keyD     = pressed; break;
-            case Qt::Key_Q: m_keyQ     = pressed; break;
-            case Qt::Key_E: m_keyE     = pressed; break;
-            case Qt::Key_Shift:
-            case Qt::Key_Control: m_keyShift = pressed; break;
-            default: break;
-        }
+    void EditorCameraController::onMouseMove(int, int) {
     }
 
     void EditorCameraController::onScroll(float delta) {
@@ -85,19 +65,30 @@ namespace engine::editor {
     void EditorCameraController::update(float deltaTime) {
         if (!m_active || !m_camera) return;
 
-        float speed = m_moveSpeed * (m_keyShift ? 3.f : 1.f) * deltaTime;
+        auto& input = platform::InputSystem::get();
+        using platform::Key;
+
+        // Rotation
+        DirectX::XMFLOAT2 mouseDelta = input.getMouseDelta();
+        m_yaw   += mouseDelta.x * m_lookSpeed;
+        m_pitch += mouseDelta.y * m_lookSpeed;
+        m_pitch  = std::clamp(m_pitch, -kPitchLimit, kPitchLimit);
+
+        // Movement
+        bool keyShift = input.isKeyDown(Key::Shift) || input.isKeyDown(Key::Control);
+        float speed = m_moveSpeed * (keyShift ? 3.f : 1.f) * deltaTime;
 
         XMFLOAT3 fwd = forward();
         XMFLOAT3 rgt = right();
 
         XMVECTOR pos = XMLoadFloat3(&m_position);
 
-        if (m_keyW) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&fwd),  speed));
-        if (m_keyS) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&fwd), -speed));
-        if (m_keyD) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&rgt),  speed));
-        if (m_keyA) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&rgt), -speed));
-        if (m_keyE) pos = XMVectorAdd(pos, XMVectorSet(0.f,  speed, 0.f, 0.f));
-        if (m_keyQ) pos = XMVectorAdd(pos, XMVectorSet(0.f, -speed, 0.f, 0.f));
+        if (input.isKeyDown(Key::W)) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&fwd),  speed));
+        if (input.isKeyDown(Key::S)) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&fwd), -speed));
+        if (input.isKeyDown(Key::D)) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&rgt), -speed));
+        if (input.isKeyDown(Key::A)) pos = XMVectorAdd(pos, XMVectorScale(XMLoadFloat3(&rgt),  speed));
+        if (input.isKeyDown(Key::E)) pos = XMVectorAdd(pos, XMVectorSet(0.f,  speed, 0.f, 0.f));
+        if (input.isKeyDown(Key::Q)) pos = XMVectorAdd(pos, XMVectorSet(0.f, -speed, 0.f, 0.f));
 
         XMStoreFloat3(&m_position, pos);
 

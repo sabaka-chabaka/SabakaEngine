@@ -36,6 +36,7 @@ namespace engine::editor {
         void onGizmoMove();
         void onGizmoRotate();
         void onGizmoScale();
+        void onViewportMouseButtonChanged(bool pressed);
         void onAbout();
 
     private:

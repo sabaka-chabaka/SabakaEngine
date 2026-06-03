@@ -19,6 +19,7 @@ namespace engine::editor {
 
         signals:
             void engineReady(EditorApplication* engine);
+            void rightMouseButtonChanged(bool pressed);
 
     protected:
         void exposeEvent(QExposeEvent* event)       override;
