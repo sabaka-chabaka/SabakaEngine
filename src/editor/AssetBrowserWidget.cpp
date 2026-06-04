@@ -13,6 +13,7 @@
 #include <QToolBar>
 #include <QTreeView>
 #include <QVBoxLayout>
+#include <QDrag>
 
 namespace engine::editor {
 
