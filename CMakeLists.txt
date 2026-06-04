@@ -208,6 +208,10 @@ if(Qt6_FOUND)
             src/editor/sections/BoundingBoxSection.h
             src/editor/EditorCameraController.cpp
             src/editor/EditorCameraController.h
+            src/editor/AssetBrowserWidget.cpp
+            src/editor/AssetBrowserWidget.h
+            src/editor/ViewportDropHandler.cpp
+            src/editor/ViewportDropHandler.h
     )
 
     target_include_directories(SabakaEditor PRIVATE src)

@@ -127,8 +127,8 @@
 [✓] 83. Viewport панель (рендер движка внутри Qt)
 [✓] 84. Scene Hierarchy (QTreeView → список Entity)
 [✓] 85. Inspector панель (компоненты выбранного Entity)
-[ ] 86. Asset Browser (файловая система проекта)
-[ ] 87. Drag & drop ассетов из браузера в сцену
+[✓] 86. Asset Browser (файловая система проекта)
+[✓] 87. Drag & drop ассетов из браузера в сцену
 [ ] 88. Gizmos — Translation (стрелки перемещения)
 [ ] 89. Gizmos — Rotation (дуги вращения)
 [ ] 90. Gizmos — Scale (кубики масштаба)

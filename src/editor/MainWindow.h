@@ -2,17 +2,16 @@
 #include <QMainWindow>
 #include <QAction>
 #include <QDockWidget>
-#include <QLabel>
-#include <QListWidget>
 #include <QScrollArea>
 #include <QToolBar>
-#include <QTreeWidget>
 
 namespace engine::core  { class Entity; }
 namespace engine::editor {
     class ViewportWindow;
     class HierarchyWidget;
     class InspectorWidget;
+    class AssetBrowserWidget;
+    class ViewportDropHandler;
     class EditorApplication;
 }
 
@@ -27,6 +26,7 @@ namespace engine::editor {
     private slots:
         void onEngineReady(EditorApplication* engine);
         void onEntitySelected(core::Entity* entity);
+        void onEntityDropped(EditorApplication* engine, const QString& assetPath);
         void onNewScene();
         void onOpenScene();
         void onSaveScene();
@@ -48,11 +48,12 @@ namespace engine::editor {
         QDockWidget* makeDock(const QString& title, QWidget* contents,
                               Qt::DockWidgetArea area, int minW = 200, int minH = 120);
 
-        ViewportWindow*   m_viewportWindow    = nullptr;
-        QWidget*          m_viewportContainer = nullptr;
-        HierarchyWidget*  m_hierarchy         = nullptr;
-        InspectorWidget*  m_inspector         = nullptr;
-        QListWidget*      m_assetList         = nullptr;
+        ViewportWindow*      m_viewportWindow    = nullptr;
+        QWidget*             m_viewportContainer = nullptr;
+        HierarchyWidget*     m_hierarchy         = nullptr;
+        InspectorWidget*     m_inspector         = nullptr;
+        AssetBrowserWidget*  m_assetBrowser      = nullptr;
+        ViewportDropHandler* m_dropHandler       = nullptr;
 
         QAction* m_actPlay   = nullptr;
         QAction* m_actPause  = nullptr;

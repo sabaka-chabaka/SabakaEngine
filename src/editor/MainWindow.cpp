@@ -2,9 +2,12 @@
 #include "editor/ViewportWindow.h"
 #include "editor/HierarchyWidget.h"
 #include "editor/InspectorWidget.h"
+#include "editor/AssetBrowserWidget.h"
+#include "editor/ViewportDropHandler.h"
 #include "editor/EditorApplication.h"
 #include "core/Entity.h"
 #include <QApplication>
+#include <QDir>
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -53,7 +56,7 @@ namespace engine::editor {
             if (m_inspector) m_inspector->parentWidget()->parentWidget()->show();
         });
         view->addAction("Asset Browser", [this] {
-            if (m_assetList) m_assetList->parentWidget()->parentWidget()->show();
+            if (m_assetBrowser) m_assetBrowser->parentWidget()->parentWidget()->show();
         });
 
         menuBar()->addMenu("Help")->addAction("About", this, &MainWindow::onAbout);
@@ -106,12 +109,9 @@ namespace engine::editor {
         m_inspector = new InspectorWidget();
         makeDock("Inspector", m_inspector, Qt::RightDockWidgetArea, 260, 300);
 
-        m_assetList = new QListWidget();
-        m_assetList->addItem("(no project loaded)");
-        m_assetList->setViewMode(QListWidget::IconMode);
-        m_assetList->setIconSize(QSize(48, 48));
-        m_assetList->setResizeMode(QListWidget::Adjust);
-        makeDock("Asset Browser", m_assetList, Qt::BottomDockWidgetArea, 0, 150);
+        m_assetBrowser = new AssetBrowserWidget();
+        m_assetBrowser->setRootPath(QDir::currentPath());
+        makeDock("Asset Browser", m_assetBrowser, Qt::BottomDockWidgetArea, 0, 180);
     }
 
     void MainWindow::setupCentralViewport() {
@@ -125,6 +125,13 @@ namespace engine::editor {
         m_viewportContainer->setMinimumSize(320, 240);
         m_viewportContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         m_viewportContainer->setFocusPolicy(Qt::StrongFocus);
+        m_viewportContainer->setAcceptDrops(true);
+
+        m_dropHandler = new ViewportDropHandler(this);
+        m_viewportContainer->installEventFilter(m_dropHandler);
+        connect(m_dropHandler, &ViewportDropHandler::entityDropped,
+                this, &MainWindow::onEntityDropped);
+
         setCentralWidget(m_viewportContainer);
     }
 
@@ -145,7 +152,17 @@ namespace engine::editor {
     void MainWindow::onEngineReady(EditorApplication* engine) {
         m_hierarchy->setEngine(engine);
         m_inspector->setEngine(engine);
+        m_dropHandler->setEngine(engine);
         statusBar()->showMessage("Engine ready");
+    }
+
+    void MainWindow::onEntityDropped(EditorApplication* engine, const QString& assetPath) {
+        m_hierarchy->setEngine(engine);
+        core::Entity* sel = engine->getSelectedEntity();
+        if (sel) {
+            m_inspector->inspect(sel);
+            statusBar()->showMessage(QString("Dropped: %1").arg(assetPath));
+        }
     }
 
     void MainWindow::onEntitySelected(core::Entity* entity) {
