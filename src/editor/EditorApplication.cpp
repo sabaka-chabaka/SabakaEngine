@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "editor/EditorApplication.h"
+#include "editor/GizmoController.h"
 #include "core/Logger.h"
 #include "core/Entity.h"
 #include "core/Transform.h"
@@ -115,6 +116,18 @@ namespace engine::editor {
         return e;
     }
 
+    void EditorApplication::clearScene() {
+        m_selectedEntity = nullptr;
+        const auto& entities = m_scene->getEntities();
+        std::vector<core::Entity*> toDestroy;
+        toDestroy.reserve(entities.size());
+        for (const auto& e : entities)
+            toDestroy.push_back(e.get());
+        for (auto* e : toDestroy)
+            m_scene->destroyEntity(e);
+        LOG_INFO("[EditorApplication] scene cleared");
+    }
+
     void EditorApplication::destroyEntity(core::Entity* entity) {
         if (!entity) return;
         if (m_selectedEntity == entity) m_selectedEntity = nullptr;
@@ -124,6 +137,18 @@ namespace engine::editor {
     void EditorApplication::tick(float deltaTime) {
         m_graphics->beginFrame(0.08f, 0.08f, 0.12f);
         renderFrame(deltaTime);
+
+        if (m_selectedEntity && m_gizmoMode != GizmoMode::None) {
+            if (!m_gizmoRenderer.isInitialized())
+                m_gizmoRenderer.init(m_graphics.get());
+
+            auto* t = m_selectedEntity->getComponent<core::Transform>();
+            if (t) {
+                m_gizmoRenderer.render(m_graphics.get(), m_camera.get(),
+                    t->getPosition(), m_gizmoMode, m_gizmoController.getHovered());
+            }
+        }
+
         m_graphics->endFrame();
     }
 

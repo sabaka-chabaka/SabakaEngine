@@ -4,6 +4,7 @@
 #include <QDockWidget>
 #include <QScrollArea>
 #include <QToolBar>
+#include <memory>
 
 namespace engine::core  { class Entity; }
 namespace engine::editor {
@@ -12,6 +13,7 @@ namespace engine::editor {
     class InspectorWidget;
     class AssetBrowserWidget;
     class ViewportDropHandler;
+    class PlayModeManager;
     class EditorApplication;
 }
 
@@ -62,7 +64,7 @@ namespace engine::editor {
         QAction* m_actRotate = nullptr;
         QAction* m_actScale  = nullptr;
 
-        bool m_playing = false;
+        std::unique_ptr<PlayModeManager> m_playMode;
     };
 
 }

@@ -3,6 +3,16 @@ project(SabakaEngine)
 
 set(CMAKE_CXX_STANDARD 20)
 
+include(FetchContent)
+FetchContent_Declare(
+    nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp
+    DOWNLOAD_NO_EXTRACT TRUE
+    SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/nlohmann
+)
+FetchContent_MakeAvailable(nlohmann_json)
+set(NLOHMANN_JSON_INCLUDE ${CMAKE_BINARY_DIR}/_deps/nlohmann)
+
 if(NOT DEFINED PHYSX_ROOT)
     set(PHYSX_ROOT "D:/CLionProjects/SabakaEngine/third_party/PhysX-sdk")
 endif()
@@ -196,6 +206,8 @@ if(Qt6_FOUND)
             src/editor/EditorApplication.h
             src/editor/HierarchyWidget.cpp
             src/editor/HierarchyWidget.h
+            src/editor/EditorCameraController.cpp
+            src/editor/EditorCameraController.h
             src/editor/InspectorWidget.cpp
             src/editor/InspectorWidget.h
             src/editor/sections/ComponentSection.cpp
@@ -206,15 +218,29 @@ if(Qt6_FOUND)
             src/editor/sections/MeshRendererSection.h
             src/editor/sections/BoundingBoxSection.cpp
             src/editor/sections/BoundingBoxSection.h
-            src/editor/EditorCameraController.cpp
-            src/editor/EditorCameraController.h
             src/editor/AssetBrowserWidget.cpp
             src/editor/AssetBrowserWidget.h
             src/editor/ViewportDropHandler.cpp
             src/editor/ViewportDropHandler.h
+            src/editor/GizmoMode.h
+            src/editor/GizmoRenderer.cpp
+            src/editor/GizmoRenderer.h
+            src/editor/GizmoController.cpp
+            src/editor/GizmoController.h
+            src/editor/SceneSerializer.cpp
+            src/editor/SceneSerializer.h
+            src/editor/PlayModeManager.cpp
+            src/editor/PlayModeManager.h
+            src/editor/commands/Command.h
+            src/editor/commands/CommandHistory.cpp
+            src/editor/commands/CommandHistory.h
+            src/editor/commands/TransformCommands.cpp
+            src/editor/commands/TransformCommands.h
+            src/editor/commands/EntityCommands.cpp
+            src/editor/commands/EntityCommands.h
     )
 
-    target_include_directories(SabakaEditor PRIVATE src)
+    target_include_directories(SabakaEditor PRIVATE src ${NLOHMANN_JSON_INCLUDE})
 
     target_link_libraries(SabakaEditor PRIVATE
             SabakaEngineLib

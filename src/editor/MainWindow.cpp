@@ -1,4 +1,9 @@
 #include "editor/MainWindow.h"
+#include "editor/PlayModeManager.h"
+#include "editor/SceneSerializer.h"
+#include "editor/commands/CommandHistory.h"
+#include "editor/commands/EntityCommands.h"
+#include "editor/GizmoMode.h"
 #include "editor/ViewportWindow.h"
 #include "editor/HierarchyWidget.h"
 #include "editor/InspectorWidget.h"
@@ -23,6 +28,8 @@ namespace engine::editor {
         setMinimumSize(1024, 600);
         resize(1600, 900);
 
+        m_playMode = std::make_unique<PlayModeManager>();
+
         setupToolBar();
         setupMenuBar();
         setupDocks();
@@ -40,8 +47,16 @@ namespace engine::editor {
         file->addAction("Exit", QApplication::instance(), &QApplication::quit, QKeySequence::Quit);
 
         QMenu* edit = menuBar()->addMenu("Edit");
-        edit->addAction("Undo", QKeySequence::Undo);
-        edit->addAction("Redo", QKeySequence::Redo);
+        edit->addAction("Undo", QKeySequence::Undo, [this] {
+            CommandHistory::get().undo();
+            statusBar()->showMessage(QString("Undo: %1").arg(
+                QString::fromStdString(CommandHistory::get().redoDescription())));
+        });
+        edit->addAction("Redo", QKeySequence::Redo, [this] {
+            CommandHistory::get().redo();
+            statusBar()->showMessage(QString("Redo: %1").arg(
+                QString::fromStdString(CommandHistory::get().undoDescription())));
+        });
         edit->addSeparator();
         QMenu* gizmoMenu = edit->addMenu("Gizmo Mode");
         gizmoMenu->addAction(m_actMove);
@@ -153,6 +168,7 @@ namespace engine::editor {
         m_hierarchy->setEngine(engine);
         m_inspector->setEngine(engine);
         m_dropHandler->setEngine(engine);
+        m_playMode->setApp(engine);
         statusBar()->showMessage("Engine ready");
     }
 
@@ -173,27 +189,42 @@ namespace engine::editor {
     }
 
     void MainWindow::onNewScene() {
-        if (m_hierarchy) m_hierarchy->setEngine(
-            m_viewportWindow ? m_viewportWindow->getEngine() : nullptr);
+        auto* eng = m_viewportWindow ? m_viewportWindow->getEngine() : nullptr;
+        if (eng) {
+            eng->clearScene();
+            m_hierarchy->setEngine(eng);
+            m_inspector->clear();
+            CommandHistory::get().clear();
+        }
         statusBar()->showMessage("New scene");
     }
 
     void MainWindow::onOpenScene() {
         QString path = QFileDialog::getOpenFileName(
             this, "Open Scene", "", "Scene Files (*.scene);;All Files (*)");
-        if (!path.isEmpty())
-            statusBar()->showMessage("Opened: " + path);
+        if (path.isEmpty()) return;
+        auto* eng = m_viewportWindow ? m_viewportWindow->getEngine() : nullptr;
+        if (!eng) return;
+        eng->clearScene();
+        SceneSerializer::loadFromFile(eng, path.toStdString());
+        m_hierarchy->setEngine(eng);
+        m_inspector->clear();
+        CommandHistory::get().clear();
+        statusBar()->showMessage("Opened: " + path);
     }
 
     void MainWindow::onSaveScene() {
         QString path = QFileDialog::getSaveFileName(
             this, "Save Scene", "", "Scene Files (*.scene);;All Files (*)");
-        if (!path.isEmpty())
-            statusBar()->showMessage("Saved: " + path);
+        if (path.isEmpty()) return;
+        auto* eng = m_viewportWindow ? m_viewportWindow->getEngine() : nullptr;
+        if (!eng) return;
+        SceneSerializer::saveToFile(eng->getScene(), path.toStdString());
+        statusBar()->showMessage("Saved: " + path);
     }
 
     void MainWindow::onPlay() {
-        m_playing = true;
+        m_playMode->play();
         m_actPlay->setEnabled(false);
         m_actPause->setEnabled(true);
         m_actStop->setEnabled(true);
@@ -201,17 +232,21 @@ namespace engine::editor {
     }
 
     void MainWindow::onPause() {
-        m_playing = false;
+        m_playMode->pause();
         m_actPlay->setEnabled(true);
         m_actPause->setEnabled(false);
         statusBar()->showMessage("Paused");
     }
 
     void MainWindow::onStop() {
-        m_playing = false;
+        m_playMode->stop();
         m_actPlay->setEnabled(true);
         m_actPause->setEnabled(false);
         m_actStop->setEnabled(false);
+        if (auto* eng = m_viewportWindow->getEngine()) {
+            m_hierarchy->setEngine(eng);
+            m_inspector->clear();
+        }
         statusBar()->showMessage("Stopped");
     }
 
@@ -219,6 +254,8 @@ namespace engine::editor {
         m_actMove->setChecked(true);
         m_actRotate->setChecked(false);
         m_actScale->setChecked(false);
+        if (m_viewportWindow->getEngine())
+            m_viewportWindow->getEngine()->setGizmoMode(GizmoMode::Translate);
         statusBar()->showMessage("Gizmo: Move");
     }
 
@@ -226,6 +263,8 @@ namespace engine::editor {
         m_actMove->setChecked(false);
         m_actRotate->setChecked(true);
         m_actScale->setChecked(false);
+        if (m_viewportWindow->getEngine())
+            m_viewportWindow->getEngine()->setGizmoMode(GizmoMode::Rotate);
         statusBar()->showMessage("Gizmo: Rotate");
     }
 
@@ -233,6 +272,8 @@ namespace engine::editor {
         m_actMove->setChecked(false);
         m_actRotate->setChecked(false);
         m_actScale->setChecked(true);
+        if (m_viewportWindow->getEngine())
+            m_viewportWindow->getEngine()->setGizmoMode(GizmoMode::Scale);
         statusBar()->showMessage("Gizmo: Scale");
     }
 
